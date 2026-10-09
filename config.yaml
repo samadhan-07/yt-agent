@@ -1,0 +1,19 @@
+# ---- Channel / content ----
+niche: "mind-blowing science and space facts"
+style_notes: "Curious, punchy, no clickbait lies. Start with a hook in the first sentence."
+language: en
+voice: en-US-AndrewNeural        # run: edge-tts --list-voices
+target_seconds: 40               # narration length (Shorts must be < 60s)
+videos_per_run: 1
+
+# ---- LLM (Google AI Studio free tier) ----
+gemini_model: gemini-2.0-flash   # change if Google retires it
+
+# ---- AI images (Pollinations / FLUX) ----
+image_model: flux
+image_delay_seconds: 16          # anonymous tier ~1 req / 15 s; lower it if you set POLLINATIONS_API_KEY
+
+# ---- YouTube ----
+privacy: private                 # keep "private" while testing, then "public"
+category_id: "27"                # 27 = Education, 28 = Science & Tech
+extra_tags: [shorts, facts]
