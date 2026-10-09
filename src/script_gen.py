@@ -5,6 +5,7 @@ Channel niche: {niche}
 Style: {style}
 Language: {lang}
 Narration length: about {words} words total (must be under 55 seconds when spoken).
+{topic_line}
 
 Do NOT repeat or closely resemble these earlier topics:
 {past}
@@ -23,7 +24,7 @@ Return ONLY JSON with this shape:
 Use 6 to 9 scenes. Scene 1 is a strong hook. The last scene is a short closing line.
 Facts must be accurate. No emojis in "text"."""
 
-def generate(cfg, past_titles):
+def generate(cfg, past_titles, topic=None):
     key = os.environ["GEMINI_API_KEY"]
     model = cfg.get("gemini_model", "gemini-2.0-flash")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
@@ -31,6 +32,7 @@ def generate(cfg, past_titles):
         niche=cfg["niche"], style=cfg.get("style_notes", ""), lang=cfg.get("language", "en"),
         words=int(cfg.get("target_seconds", 40) * 2.5),
         past="\n".join(f"- {t}" for t in past_titles) or "(none yet)",
+        topic_line=(f"Make the video about this specific topic: {topic}" if topic else "Pick a fresh, interesting topic yourself."),
     )
     body = {
         "contents": [{"parts": [{"text": prompt}]}],
