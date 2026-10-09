@@ -2,7 +2,7 @@ import os, pathlib, shutil, sys, yaml
 from . import script_gen, tts, imagegen, render, upload, state
 
 def make_one(cfg, st, dry_run):
-    data = script_gen.generate(cfg, state.past_titles(st))
+    data = script_gen.generate(cfg, state.past_titles(st), os.environ.get("TOPIC", "").strip() or None)
     scenes = data["scenes"]
     print(f"Title: {data['title']}")
 
