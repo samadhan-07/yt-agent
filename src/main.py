@@ -1,8 +1,15 @@
 import os, pathlib, shutil, sys, yaml
 from . import script_gen, tts, imagegen, render, upload, state
-
+LANGS = {
+    "hi": ("Hindi", "hi-IN-MadhurNeural"),
+    "en": ("English", "en-US-AndrewNeural"),
+    "es": ("Spanish", "es-ES-AlvaroNeural"),
+}
 def make_one(cfg, st, dry_run):
     data = script_gen.generate(cfg, state.past_titles(st), os.environ.get("TOPIC", "").strip() or None)
+    if cfg.get("cartoon_style"):
+    data["visual_style"] = (cfg["cartoon_style"] + ", expressive faces and clear emotions, "
+                            "vibrant colors, vertical 9:16, no text")
     scenes = data["scenes"]
     print(f"Title: {data['title']}")
 
@@ -44,6 +51,11 @@ def make_one(cfg, st, dry_run):
 
 def main():
     cfg = yaml.safe_load(open("config.yaml"))
+    code = os.environ.get("VIDEO_LANGUAGE") or cfg.get("language", "en")
+    name, voice = LANGS.get(code, ("English", cfg["voice"]))
+    cfg["language"], cfg["voice"] = name, voice
+    style = os.environ.get("CARTOON_STYLE", "")
+    cfg["cartoon_style"] = "" if style.startswith("None") else style
     dry = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
     st = state.load()
     failures = 0
