@@ -26,7 +26,7 @@ Facts must be accurate. No emojis in "text"."""
 
 def generate(cfg, past_titles, topic=None):
     key = os.environ["GEMINI_API_KEY"]
-       model = cfg.get("gemini_model", "gemini-3.5-flash")
+    model = cfg.get("gemini_model", "gemini-3.5-flash")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     prompt = PROMPT.format(
         niche=cfg["niche"], style=cfg.get("style_notes", ""), lang=cfg.get("language", "en"),
