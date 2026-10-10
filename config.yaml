@@ -7,7 +7,7 @@ target_seconds: 40               # narration length (Shorts must be < 60s)
 videos_per_run: 1
 
 # ---- LLM (Google AI Studio free tier) ----
-gemini_model: gemini-2.0-flash   # change if Google retires it
+gemini_model: gemini-3.5-flash   # change if Google retires it
 
 # ---- AI images (Pollinations / FLUX) ----
 image_model: flux
