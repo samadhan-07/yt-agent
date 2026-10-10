@@ -1,15 +1,20 @@
 import os, pathlib, shutil, sys, yaml
 from . import script_gen, tts, imagegen, render, upload, state
+
 LANGS = {
     "hi": ("Hindi", "hi-IN-MadhurNeural"),
     "en": ("English", "en-US-AndrewNeural"),
     "es": ("Spanish", "es-ES-AlvaroNeural"),
 }
+
 def make_one(cfg, st, dry_run):
     data = script_gen.generate(cfg, state.past_titles(st), os.environ.get("TOPIC", "").strip() or None)
+    
+    # Fixed Indentation block below:
     if cfg.get("cartoon_style"):
-    data["visual_style"] = (cfg["cartoon_style"] + ", expressive faces and clear emotions, "
-                            "vibrant colors, vertical 9:16, no text")
+        data["visual_style"] = (cfg["cartoon_style"] + ", expressive faces and clear emotions, "
+                                "vibrant colors, vertical 9:16, no text")
+                                
     scenes = data["scenes"]
     print(f"Title: {data['title']}")
 
