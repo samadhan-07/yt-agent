@@ -1,4 +1,5 @@
 import pathlib, subprocess
+import os
 
 W, H, FPS = 1080, 1920, 30
 
@@ -11,6 +12,7 @@ def _ts(t):
     return f"{int(h)}:{int(m):02d}:{s:05.2f}"
 
 def make_ass(words, path, group=3):
+    font = "Noto Sans Devanagari" if os.environ.get("VIDEO_LANGUAGE", "hi") == "hi" else "DejaVu Sans"
     head = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {W}
@@ -18,7 +20,7 @@ PlayResY: {H}
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,DejaVu Sans,84,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,7,2,5,60,60,0,1
+Style: Default,{font},84,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,7,2,5,60,60,0,1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
