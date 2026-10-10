@@ -11,6 +11,21 @@ on:
         description: "Optional topic (leave empty to let the AI choose)"
         type: string
         default: ""
+      language:
+        description: "Language for narration and script"
+        type: choice
+        options:
+          - "hi"
+          - "en"
+          - "es"
+        default: "hi"
+      cartoon_style:
+        description: "Visual style theme for the AI images"
+        type: choice
+        options:
+          - "3D Pixar Cartoon Style"
+          - "None (Realistic)"
+        default: "3D Pixar Cartoon Style"  
       dry_run:
         description: "Render only, do not upload"
         type: boolean
@@ -34,6 +49,8 @@ jobs:
         run: python -m src.main
         env:
           TOPIC: ${{ github.event_name == 'workflow_dispatch' && inputs.topic || '' }}
+          VIDEO_LANGUAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.language || 'hi' }}
+          CARTOON_STYLE: ${{ github.event_name == 'workflow_dispatch' && inputs.cartoon_style || '3D Pixar Cartoon Style' }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
