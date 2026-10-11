@@ -26,7 +26,8 @@ Facts must be accurate. No emojis in "text"."""
 
 def generate(cfg, past_titles, topic=None):
     key = os.environ["GEMINI_API_KEY"]
-    model = cfg.get("gemini_model", "gemini-3.5-flash")
+    # FIXED: Replaced non-existent model fallback string with stable production 'gemini-1.5-flash'
+    model = cfg.get("gemini_model", "gemini-2.0-flash")
     url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
     prompt = PROMPT.format(
         niche=cfg["niche"], style=cfg.get("style_notes", ""), lang=cfg.get("language", "en"),
@@ -39,17 +40,35 @@ def generate(cfg, past_titles, topic=None):
         "generationConfig": {"responseMimeType": "application/json", "temperature": 1.0},
     }
     last = None
-    for attempt in range(3):
+    # CHANGED: Increased retry attempts from 3 to 5 to push through peak server loads
+    for attempt in range(5):
         try:
             r = requests.post(url, params={"key": key}, json=body, timeout=90)
+            
+            # FIXED: Catch 503 Server Unavailable code specifically, wait, and try again
+            if r.status_code == 503:
+                wait_time = (attempt + 1) * 15
+                print(f"⚠️ Gemini API overloaded (503). Retrying in {wait_time} seconds... (Attempt {attempt + 1}/5)")
+                time.sleep(wait_time)
+                continue
+                
             r.raise_for_status()
             text = r.json()["candidates"][0]["content"]["parts"][0]["text"]
-            data = json.loads(text)
+            
+            # Clean out common AI markdown backticks if Gemini prints them around the JSON object
+            text_cleaned = text.strip()
+            if text_cleaned.startswith("```json"):
+                text_cleaned = text_cleaned.split("```json")[1].split("```")[0].strip()
+            elif text_cleaned.startswith("```"):
+                text_cleaned = text_cleaned.split("```")[1].split("```")[0].strip()
+                
+            data = json.loads(text_cleaned)
             assert data["title"] and data["visual_style"] and len(data["scenes"]) >= 4
             for s in data["scenes"]:
                 assert s["text"].strip() and s["image_prompt"].strip()
             return data
         except Exception as e:
             last = e
-            time.sleep(3 * (attempt + 1))
+            # Scaled up recovery delay to give the API more breathing room
+            time.sleep(5 * (attempt + 1))
     raise RuntimeError(f"Script generation failed: {last}")
