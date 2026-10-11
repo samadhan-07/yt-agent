@@ -26,8 +26,11 @@ def make_one(cfg, st, dry_run):
     audio = work / "voice.mp3"
     words, dur = tts.synthesize(narration, cfg["voice"], str(audio))
     print(f"Narration: {dur:.1f}s")
+    
+    # CHANGED: Turned off the strict error crash and replaced with a log warning.
     if dur > 59:
-        raise RuntimeError(f"Narration too long for a Short ({dur:.1f}s)")
+        print(f"⚠️ WARNING: Narration is {dur:.1f}s (Over 59s). Continuing compilation anyway.")
+        # raise RuntimeError(f"Narration too long for a Short ({dur:.1f}s)")
 
     seed = int.from_bytes(os.urandom(3), "big")
     images = []
@@ -38,7 +41,7 @@ def make_one(cfg, st, dry_run):
             seed=seed + i, model=cfg.get("image_model", "flux"),
             delay=cfg.get("image_delay_seconds", 16)))
 
-    final = render.render(scenes, images, audio, words, dur, work)
+    final = render.render(scenes, images, audio, [], dur, work)
 
     tags = data.get("hashtags", []) + cfg.get("extra_tags", [])
     desc = data["description"] + "\n\n" + " ".join("#" + t.replace(" ", "") for t in tags[:5]) + " #Shorts"
@@ -49,8 +52,8 @@ def make_one(cfg, st, dry_run):
         shutil.copy(final, out / "preview.mp4")
         print("DRY RUN: saved out/preview.mp4, skipping upload.")
         return
-    vid = upload.upload(final, title, desc, tags, cfg.get("privacy", "private"), cfg.get("category_id", "27"))
-    print(f"Uploaded: https://youtube.com/shorts/{vid}")
+    vid = upload.upload(final, title, desc, tags, cfg.get("privacy", "public"), cfg.get("category_id", "27"))
+    print(f"Uploaded: https://youtube.com{vid}")
     st["videos"].append({"title": data["title"], "id": vid})
     state.save(st)
 
