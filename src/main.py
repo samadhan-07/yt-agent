@@ -1,4 +1,4 @@
-import os, pathlib, shutil, sys, yaml
+import os, pathlib, random, shutil, sys, yaml
 from . import script_gen, tts, imagegen, render, upload, state
 
 LANGS = {
@@ -7,13 +7,38 @@ LANGS = {
     "es": ("Spanish", "es-ES-AlvaroNeural"),
 }
 
-def make_one(cfg, st, dry_run):
-    data = script_gen.generate(cfg, state.past_titles(st), os.environ.get("TOPIC", "").strip() or None)
+def get_random_topic_from_list():
+    """Reads all topics from topics.txt and returns one completely at random without modifying the file."""
+    topic_file = pathlib.Path("topics.txt")
+    if not topic_file.exists():
+        return None
+        
+    lines = topic_file.read_text(encoding="utf-8").splitlines()
+    # Filter out empty lines
+    lines = [line.strip() for line in lines if line.strip()]
     
-    # Fixed Indentation block below:
-    if cfg.get("cartoon_style"):
-        data["visual_style"] = (cfg["cartoon_style"] + ", expressive faces and clear emotions, "
-                                "vibrant colors, vertical 9:16, no text")
+    if not lines:
+        return None
+        
+    # SELECT RANDOM: Chooses a random item from the list
+    next_topic = random.choice(lines)
+    
+    # SAFE: No file writing happens here, so your topics.txt is left completely untouched!
+    print(f"🎲 Randomly Selected Topic from list: {next_topic}")
+    return next_topic
+
+def make_one(cfg, st, dry_run):
+    # Call the random selection logic. Fallback to env or random if empty.
+    selected_topic = get_random_topic_from_list() or os.environ.get("TOPIC", "").strip() or None
+    
+    data = script_gen.generate(cfg, state.past_titles(st), selected_topic)
+    
+    # Universal premium 3D cartoon style application even if cartoon_style config is empty
+    base_style = cfg.get("cartoon_style", "").strip()
+    style_prefix = base_style + ", " if base_style else ""
+    data["visual_style"] = (style_prefix + "premium Pixar-inspired cinematic 3D animation, "
+                            "highly detailed polished textures, expressive characters, rich volumetric lighting, "
+                            "beautiful depth of field, vibrant colors, vertical 9:16, no text, no captions")
                                 
     scenes = data["scenes"]
     print(f"Title: {data['title']}")
@@ -27,10 +52,9 @@ def make_one(cfg, st, dry_run):
     words, dur = tts.synthesize(narration, cfg["voice"], str(audio))
     print(f"Narration: {dur:.1f}s")
     
-    # CHANGED: Turned off the strict error crash and replaced with a log warning.
+    # strict crash turned off as requested
     if dur > 59:
         print(f"⚠️ WARNING: Narration is {dur:.1f}s (Over 59s). Continuing compilation anyway.")
-        # raise RuntimeError(f"Narration too long for a Short ({dur:.1f}s)")
 
     seed = int.from_bytes(os.urandom(3), "big")
     images = []
@@ -41,6 +65,7 @@ def make_one(cfg, st, dry_run):
             seed=seed + i, model=cfg.get("image_model", "flux"),
             delay=cfg.get("image_delay_seconds", 16)))
 
+    # empty list [] to keep subtitles removed
     final = render.render(scenes, images, audio, [], dur, work)
 
     tags = data.get("hashtags", []) + cfg.get("extra_tags", [])
@@ -52,6 +77,7 @@ def make_one(cfg, st, dry_run):
         shutil.copy(final, out / "preview.mp4")
         print("DRY RUN: saved out/preview.mp4, skipping upload.")
         return
+        
     vid = upload.upload(final, title, desc, tags, cfg.get("privacy", "public"), cfg.get("category_id", "27"))
     print(f"Uploaded: https://youtube.com{vid}")
     st["videos"].append({"title": data["title"], "id": vid})
