@@ -1,10 +1,12 @@
 name: daily-video
 on:
   schedule:
-    - cron: "30 3 * * *"     # 09:00 IST
-    - cron: "30 7 * * *"     # 13:00 IST
-    - cron: "30 11 * * *"    # 17:00 IST
-    - cron: "30 15 * * *"    # 21:00 IST
+    # 5 Strategic high-view peak time schedules spaced across the day (Calculated in UTC for IST)
+    - cron: "00 3 * * *"     # 08:30 AM IST (Morning Commute / School Prep Wave)
+    - cron: "30 6 * * *"     # 12:00 PM IST (Mid-Day / Pre-Lunch Break Scroll)
+    - cron: "30 9 * * *"     # 03:00 PM IST (Afternoon Slump / Post-Lunch Refresh)
+    - cron: "00 13 * * *"    # 06:30 PM IST (Evening Travel / End-of-Day Free Time)
+    - cron: "30 16 * * *"    # 10:00 PM IST (Night Relaxation / Before-Bed Scrolling Peak)
   workflow_dispatch:
     inputs:
       topic:
@@ -43,7 +45,10 @@ jobs:
         with:
           python-version: "3.11"
           cache: pip
-      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core
+          
+      # FIXED: Added 'fonts-indic' to ensure Hindi text processing never shows empty boxes
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-indic
+      
       - run: pip install -r requirements.txt
       - name: Generate and upload
         run: python -m src.main
