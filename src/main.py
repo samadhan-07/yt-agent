@@ -32,36 +32,6 @@ def get_random_topic_from_list():
     return next_topic
 
 
-def generate_script_with_fallback(cfg, past_titles, topic):
-    """
-    Try script generation with the primary model first, then each model listed in
-    config.yaml under `model_fallbacks` (e.g. ["gemini-2.5-flash-lite", "gemini-2.0-flash"]).
-
-    NOTE: script_gen.py already retries 503s internally, so we make one pass per model here.
-    This only has an effect if script_gen reads the model name from cfg["model"].
-    """
-    original_model = cfg.get("model")
-    candidates = [original_model] + list(cfg.get("model_fallbacks", []))
-    last_err = None
-
-    for model in candidates:
-        if model:
-            cfg["model"] = model
-        label = model or "default model"
-        try:
-            print(f"📝 Generating script with {label}...")
-            return script_gen.generate(cfg, past_titles, topic)
-        except Exception as e:
-            last_err = e
-            print(f"⚠️ Script generation failed on {label}: {e!r}", file=sys.stderr)
-            time.sleep(5)
-        finally:
-            if original_model is not None:
-                cfg["model"] = original_model
-
-    raise RuntimeError(f"Script generation failed on all models. Last error: {last_err!r}")
-
-
 def uploaded_today_count(st):
     today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
     return sum(1 for v in st.get("videos", []) if v.get("date") == today)
@@ -70,7 +40,7 @@ def uploaded_today_count(st):
 def make_one(cfg, st, dry_run):
     selected_topic = get_random_topic_from_list() or os.environ.get("TOPIC", "").strip() or None
 
-    data = generate_script_with_fallback(cfg, state.past_titles(st), selected_topic)
+    data = script_gen.generate(cfg, state.past_titles(st), selected_topic)
 
     # Universal premium 3D cartoon style application even if cartoon_style config is empty
     base_style = cfg.get("cartoon_style", "").strip()
