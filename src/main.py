@@ -68,10 +68,18 @@ def make_one(cfg, st, dry_run):
     images = []
     for i, s in enumerate(scenes):
         print(f"Generating image {i + 1}/{len(scenes)}")
-        images.append(imagegen.generate(
-            s["image_prompt"], data["visual_style"], str(work / f"img{i}.jpg"),
-            seed=seed + i, model=cfg.get("image_model", "flux"),
-            delay=cfg.get("image_delay_seconds", 16)))
+        try:
+            img = imagegen.generate(
+                s["image_prompt"], data["visual_style"], str(work / f"img{i}.jpg"),
+                seed=seed + i, model=cfg.get("image_model", "flux"),
+                delay=cfg.get("image_delay_seconds", 16))
+        except Exception as e:
+            if not images:
+                raise  # nothing to fall back on
+            print(f"⚠️ Image {i + 1} failed ({e!r}); reusing the previous image.",
+                  file=sys.stderr, flush=True)
+            img = images[-1]
+        images.append(img)
 
     final = render.render(scenes, images, audio, [], dur, work)
 
