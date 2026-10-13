@@ -1,5 +1,12 @@
-import os, pathlib, random, shutil, sys, yaml
+import datetime, os, pathlib, random, shutil, sys, time, traceback, yaml
 from . import script_gen, tts, imagegen, render, upload, state
+
+# Flush every line so stdout/stderr appear in the correct order in GitHub Actions logs
+try:
+    sys.stdout.reconfigure(line_buffering=True)
+    sys.stderr.reconfigure(line_buffering=True)
+except Exception:
+    pass
 
 LANGS = {
     "hi": ("Hindi", "hi-IN-MadhurNeural"),
@@ -7,39 +14,71 @@ LANGS = {
     "es": ("Spanish", "es-ES-AlvaroNeural"),
 }
 
+
 def get_random_topic_from_list():
     """Reads all topics from topics.txt and returns one completely at random without modifying the file."""
     topic_file = pathlib.Path("topics.txt")
     if not topic_file.exists():
         return None
-        
+
     lines = topic_file.read_text(encoding="utf-8").splitlines()
-    # Filter out empty lines
     lines = [line.strip() for line in lines if line.strip()]
-    
+
     if not lines:
         return None
-        
-    # SELECT RANDOM: Chooses a random item from the list
+
     next_topic = random.choice(lines)
-    
-    # SAFE: No file writing happens here, so your topics.txt is left completely untouched!
     print(f"🎲 Randomly Selected Topic from list: {next_topic}")
     return next_topic
 
+
+def generate_script_with_fallback(cfg, past_titles, topic):
+    """
+    Try script generation with the primary model first, then each model listed in
+    config.yaml under `model_fallbacks` (e.g. ["gemini-2.5-flash-lite", "gemini-2.0-flash"]).
+
+    NOTE: script_gen.py already retries 503s internally, so we make one pass per model here.
+    This only has an effect if script_gen reads the model name from cfg["model"].
+    """
+    original_model = cfg.get("model")
+    candidates = [original_model] + list(cfg.get("model_fallbacks", []))
+    last_err = None
+
+    for model in candidates:
+        if model:
+            cfg["model"] = model
+        label = model or "default model"
+        try:
+            print(f"📝 Generating script with {label}...")
+            return script_gen.generate(cfg, past_titles, topic)
+        except Exception as e:
+            last_err = e
+            print(f"⚠️ Script generation failed on {label}: {e!r}", file=sys.stderr)
+            time.sleep(5)
+        finally:
+            if original_model is not None:
+                cfg["model"] = original_model
+
+    raise RuntimeError(f"Script generation failed on all models. Last error: {last_err!r}")
+
+
+def uploaded_today_count(st):
+    today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
+    return sum(1 for v in st.get("videos", []) if v.get("date") == today)
+
+
 def make_one(cfg, st, dry_run):
-    # Call the random selection logic. Fallback to env or random if empty.
     selected_topic = get_random_topic_from_list() or os.environ.get("TOPIC", "").strip() or None
-    
-    data = script_gen.generate(cfg, state.past_titles(st), selected_topic)
-    
+
+    data = generate_script_with_fallback(cfg, state.past_titles(st), selected_topic)
+
     # Universal premium 3D cartoon style application even if cartoon_style config is empty
     base_style = cfg.get("cartoon_style", "").strip()
     style_prefix = base_style + ", " if base_style else ""
     data["visual_style"] = (style_prefix + "premium Pixar-inspired cinematic 3D animation, "
                             "highly detailed polished textures, expressive characters, rich volumetric lighting, "
                             "beautiful depth of field, vibrant colors, vertical 9:16, no text, no captions")
-                                
+
     scenes = data["scenes"]
     print(f"Title: {data['title']}")
 
@@ -51,8 +90,7 @@ def make_one(cfg, st, dry_run):
     audio = work / "voice.mp3"
     words, dur = tts.synthesize(narration, cfg["voice"], str(audio))
     print(f"Narration: {dur:.1f}s")
-    
-    # strict crash turned off as requested
+
     if dur > 59:
         print(f"⚠️ WARNING: Narration is {dur:.1f}s (Over 59s). Continuing compilation anyway.")
 
@@ -65,7 +103,6 @@ def make_one(cfg, st, dry_run):
             seed=seed + i, model=cfg.get("image_model", "flux"),
             delay=cfg.get("image_delay_seconds", 16)))
 
-    # empty list [] to keep subtitles removed
     final = render.render(scenes, images, audio, [], dur, work)
 
     tags = data.get("hashtags", []) + cfg.get("extra_tags", [])
@@ -77,11 +114,16 @@ def make_one(cfg, st, dry_run):
         shutil.copy(final, out / "preview.mp4")
         print("DRY RUN: saved out/preview.mp4, skipping upload.")
         return
-        
+
     vid = upload.upload(final, title, desc, tags, cfg.get("privacy", "public"), cfg.get("category_id", "27"))
     print(f"Uploaded: https://youtube.com{vid}")
-    st["videos"].append({"title": data["title"], "id": vid})
+    st["videos"].append({
+        "title": data["title"],
+        "id": vid,
+        "date": datetime.datetime.utcnow().strftime("%Y-%m-%d"),
+    })
     state.save(st)
+
 
 def main():
     cfg = yaml.safe_load(open("config.yaml"))
@@ -91,15 +133,26 @@ def main():
     style = os.environ.get("CARTOON_STYLE", "")
     cfg["cartoon_style"] = "" if style.startswith("None") else style
     dry = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
+    force = os.environ.get("FORCE_RUN", "").lower() in ("1", "true", "yes")
     st = state.load()
+
+    per_run = int(cfg.get("videos_per_run", 1))
+
+    # Makes a second (retry) cron trigger safe: if today's video(s) already went out, exit cleanly.
+    if not dry and not force and uploaded_today_count(st) >= per_run:
+        print("✅ Today's video is already uploaded. Nothing to do.")
+        sys.exit(0)
+
     failures = 0
-    for _ in range(int(cfg.get("videos_per_run", 1))):
+    for _ in range(per_run):
         try:
             make_one(cfg, st, dry)
         except Exception as e:
             failures += 1
-            print(f"ERROR: {e}", file=sys.stderr)
+            print(f"ERROR: {e!r}", file=sys.stderr)
+            traceback.print_exc()
     sys.exit(1 if failures else 0)
+
 
 if __name__ == "__main__":
     main()
