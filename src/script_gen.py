@@ -26,7 +26,7 @@ Facts must be accurate. No emojis in "text"."""
 
 # Used when config.yaml has no gemini_models / gemini_model. Verify these names against
 # the models your API key can actually use (Google retires older ones over time).
-DEFAULT_MODELS = ["gemini-2.5-flash", "gemini-2.5-flash-lite", "gemini-2.0-flash"]
+DEFAULT_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash"]
 
 # Temporary, server-side problems: worth retrying / switching model
 RETRYABLE = {429, 500, 502, 503, 504}
