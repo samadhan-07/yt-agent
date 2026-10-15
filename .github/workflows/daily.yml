@@ -2,11 +2,9 @@ name: daily-video
 on:
   schedule:
     # 5 Strategic high-view peak time schedules spaced across the day (Calculated in UTC for IST)
-    - cron: "00 3 * * *"     # 08:30 AM IST (Morning Commute / School Prep Wave)
-    - cron: "30 6 * * *"     # 12:00 PM IST (Mid-Day / Pre-Lunch Break Scroll)
-    - cron: "30 9 * * *"     # 03:00 PM IST (Afternoon Slump / Post-Lunch Refresh)
-    - cron: "00 13 * * *"    # 06:30 PM IST (Evening Travel / End-of-Day Free Time)
-    - cron: "30 16 * * *"    # 10:00 PM IST (Night Relaxation / Before-Bed Scrolling Peak)
+    - cron: "30 2 * * *"     # 08:30 AM IST (Morning Commute / School Prep Wave)
+    - cron: "00 8 * * *"     # 12:00 PM IST (Mid-Day / Pre-Lunch Break Scroll)
+    - cron: "30 14 * * *"     # 03:00 PM IST (Afternoon Slump / Post-Lunch Refresh)
   workflow_dispatch:
     inputs:
       topic:
