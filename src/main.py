@@ -1,4 +1,4 @@
-import datetime, os, pathlib, random, shutil, sys, time, traceback, yaml
+import datetime, os, pathlib, random, shutil, sys, traceback, yaml
 from . import script_gen, tts, imagegen, render, upload, state
 
 # Flush every line so stdout/stderr appear in the correct order in GitHub Actions logs
@@ -14,43 +14,57 @@ LANGS = {
     "es": ("Spanish", "es-ES-AlvaroNeural"),
 }
 
+STYLIZED_LOOK = ("stylized 3D animated illustration, soft cinematic lighting, vibrant colors, "
+                 "clean composition, vertical 9:16, no text, no captions, no logos")
+REALISTIC_LOOK = ("photorealistic cinematic photography, natural lighting, rich detail, "
+                  "vertical 9:16, no text, no captions, no logos")
 
-def get_random_topic_from_list():
-    """Reads all topics from topics.txt and returns one completely at random without modifying the file."""
+
+def summary(msg):
+    """Print, and also show on the GitHub run summary page so skips/uploads are visible."""
+    print(msg, flush=True)
+    path = os.environ.get("GITHUB_STEP_SUMMARY")
+    if path:
+        with open(path, "a", encoding="utf-8") as f:
+            f.write(msg + "\n")
+
+
+def pick_topic(st):
+    """Manual TOPIC (workflow input) wins. Otherwise pick an unused line from topics.txt.
+    Returns None if the list is empty/used up, so the AI chooses a fresh topic itself."""
+    manual = os.environ.get("TOPIC", "").strip()
+    if manual:
+        return manual
     topic_file = pathlib.Path("topics.txt")
     if not topic_file.exists():
         return None
-
-    lines = topic_file.read_text(encoding="utf-8").splitlines()
-    lines = [line.strip() for line in lines if line.strip()]
-
-    if not lines:
+    lines = [l.strip() for l in topic_file.read_text(encoding="utf-8").splitlines() if l.strip()]
+    used = set(st.get("used_topics", []))
+    fresh = [l for l in lines if l not in used]
+    if not fresh:
         return None
-
-    next_topic = random.choice(lines)
-    print(f"🎲 Randomly Selected Topic from list: {next_topic}")
-    return next_topic
+    topic = random.choice(fresh)
+    print(f"Selected unused topic from list: {topic} ({len(fresh)} left)")
+    return topic
 
 
 def uploaded_today_count(st):
     today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
-    return sum(1 for v in st.get("videos", []) if v.get("date") == today)
+    # only count uploads made by THIS pipeline (other tools/old entries must not block it)
+    return sum(1 for v in st.get("videos", [])
+               if v.get("date") == today and v.get("by") == "yt-agent")
 
 
 def make_one(cfg, st, dry_run):
-    selected_topic = get_random_topic_from_list() or os.environ.get("TOPIC", "").strip() or None
+    selected_topic = pick_topic(st)
+    data = script_gen.generate(cfg, state.past_titles(st), selected_topic, state.top_titles())
 
-    data = script_gen.generate(cfg, state.past_titles(st), selected_topic)
-
-    # Universal premium 3D cartoon style application even if cartoon_style config is empty
     base_style = cfg.get("cartoon_style", "").strip()
-    style_prefix = base_style + ", " if base_style else ""
-    data["visual_style"] = (style_prefix + "premium Pixar-inspired cinematic 3D animation, "
-                            "highly detailed polished textures, expressive characters, rich volumetric lighting, "
-                            "beautiful depth of field, vibrant colors, vertical 9:16, no text, no captions")
+    look = cfg.get("visual_style") or (STYLIZED_LOOK if base_style else REALISTIC_LOOK)
+    data["visual_style"] = (base_style + ", " if base_style else "") + look
 
     scenes = data["scenes"]
-    print(f"Title: {data['title']}")
+    print(f"Title: {data['title']}  ({len(scenes)} scenes)")
 
     work = pathlib.Path("work")
     shutil.rmtree(work, ignore_errors=True)
@@ -60,9 +74,8 @@ def make_one(cfg, st, dry_run):
     audio = work / "voice.mp3"
     words, dur = tts.synthesize(narration, cfg["voice"], str(audio))
     print(f"Narration: {dur:.1f}s")
-
     if dur > 59:
-        print(f"⚠️ WARNING: Narration is {dur:.1f}s (Over 59s). Continuing compilation anyway.")
+        print(f"WARNING: narration is {dur:.1f}s (over 59s). Shorter loops perform better.")
 
     seed = int.from_bytes(os.urandom(3), "big")
     images = []
@@ -76,37 +89,50 @@ def make_one(cfg, st, dry_run):
         except Exception as e:
             if not images:
                 raise  # nothing to fall back on
-            print(f"⚠️ Image {i + 1} failed ({e!r}); reusing the previous image.",
+            print(f"WARN: image {i + 1} failed ({e!r}); reusing the previous image.",
                   file=sys.stderr, flush=True)
             img = images[-1]
         images.append(img)
 
-    final = render.render(scenes, images, audio, [], dur, work)
+    if not words:   # some voices return no word timings: spread the words evenly so captions still show
+        toks = narration.split()
+        step = dur / max(len(toks), 1)
+        words = [(w, i * step, (i + 1) * step) for i, w in enumerate(toks)]
+    final = render.render(scenes, images, audio, words, dur, work)
 
     tags = data.get("hashtags", []) + cfg.get("extra_tags", [])
-    desc = data["description"] + "\n\n" + " ".join("#" + t.replace(" ", "") for t in tags[:5]) + " #Shorts"
+    hashtags = " ".join("#" + t.replace(" ", "") for t in tags[:5]) + " #Shorts"
+    parts = [data["description"]]
+    if cfg.get("disclosure_line"):
+        parts.append(cfg["disclosure_line"])
+    parts.append(hashtags)
+    desc = "\n\n".join(parts)
     title = data["title"] if "#shorts" in data["title"].lower() else data["title"] + " #Shorts"
 
     if dry_run:
         out = pathlib.Path("out"); out.mkdir(exist_ok=True)
         shutil.copy(final, out / "preview.mp4")
-        print("DRY RUN: saved out/preview.mp4, skipping upload.")
+        summary(f"DRY RUN: saved out/preview.mp4 for '{data['title']}', skipping upload.")
         return
 
-    vid = upload.upload(final, title, desc, tags, cfg.get("privacy", "public"), cfg.get("category_id", "27"))
-    print(f"Uploaded: https://youtube.com{vid}")
+    vid = upload.upload(final, title, desc, tags, cfg.get("privacy", "public"),
+                        cfg.get("category_id", "27"))
+    summary(f"Uploaded '{data['title']}': https://youtu.be/{vid} (privacy: {cfg.get('privacy', 'public')})")
     st["videos"].append({
         "title": data["title"],
         "id": vid,
+        "by": "yt-agent",
         "date": datetime.datetime.utcnow().strftime("%Y-%m-%d"),
     })
+    if selected_topic:
+        st.setdefault("used_topics", []).append(selected_topic)
     state.save(st)
 
 
 def main():
-    cfg = yaml.safe_load(open("config.yaml"))
+    cfg = yaml.safe_load(open("config.yaml", encoding="utf-8"))
     code = os.environ.get("VIDEO_LANGUAGE") or cfg.get("language", "en")
-    name, voice = LANGS.get(code, ("English", cfg["voice"]))
+    name, voice = LANGS.get(code, (code, cfg["voice"]))
     cfg["language"], cfg["voice"] = name, voice
     style = os.environ.get("CARTOON_STYLE", "")
     cfg["cartoon_style"] = "" if style.startswith("None") else style
@@ -116,9 +142,9 @@ def main():
 
     per_run = int(cfg.get("videos_per_run", 1))
 
-    # Makes a second (retry) cron trigger safe: if today's video(s) already went out, exit cleanly.
+    # Makes the retry cron safe: if this pipeline already uploaded today, exit cleanly.
     if not dry and not force and uploaded_today_count(st) >= per_run:
-        print("✅ Today's video is already uploaded. Nothing to do.")
+        summary("Today's video was already uploaded by yt-agent. Nothing to do.")
         sys.exit(0)
 
     failures = 0
