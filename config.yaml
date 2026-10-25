@@ -1,20 +1,23 @@
 # ---- Channel / content ----
-niche: "mind-blowing science and space facts"
-style_notes: "Curious, punchy, no clickbait lies. Start with a hook in the first sentence."
-language: en
-voice: en-US-AndrewNeural        # run: edge-tts --list-voices
-target_seconds: 40               # narration length (Shorts must be < 60s)
+series: "रोज़ का एक राज़"
+niche: "science, space, tech and brain facts explained simply for teenagers and young adults in India (family-friendly, not for young children)"
+style_notes: "Curious, punchy and relatable. No clickbait lies, no fear-mongering. Hook in the first sentence."
+language: hi                      # hi / en / es  (the workflow input can override this)
+voice: hi-IN-MadhurNeural         # used when language is not in main.LANGS; run: edge-tts --list-voices
+target_seconds: 38                # narration length; 12-16 scenes means a new image every ~2.5 s
 videos_per_run: 1
+# Optional: override the default stylized look used for every image
+# visual_style: "stylized 3D animated illustration, soft cinematic lighting, vibrant colors, clean composition, vertical 9:16, no text, no captions, no logos"
 
 # ---- LLM (Google AI Studio free tier) ----
-# gemini_model: gemini-3.5-flash   # change if Google retires it
 gemini_models: ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash"]
 
 # ---- AI images (Pollinations / FLUX) ----
 image_model: flux
-image_delay_seconds: 16          # anonymous tier ~1 req / 15 s; lower it if you set POLLINATIONS_API_KEY
+image_delay_seconds: 16           # anonymous tier ~1 req / 15 s; lower it if you set POLLINATIONS_API_KEY
 
 # ---- YouTube ----
-privacy: private                 # keep "private" while testing, then "public"
-category_id: "27"                # 27 = Education, 28 = Science & Tech
-extra_tags: [shorts, facts]
+privacy: public                   # "private" = nobody can watch. Set to private only while testing.
+category_id: "27"                 # 27 = Education, 28 = Science & Tech
+extra_tags: [shorts, science, facts]
+disclosure_line: "AI-assisted visuals and voice."
