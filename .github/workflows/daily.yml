@@ -1,32 +1,32 @@
 name: daily-video
 on:
   schedule:
-    # 5 Strategic high-view peak time schedules spaced across the day (Calculated in UTC for IST)
-    - cron: "30 2 * * *"     # 08:30 AM IST (Morning Commute / School Prep Wave)
-    - cron: "30 14 * * *"     # 03:00 PM IST (Afternoon Slump / Post-Lunch Refresh)
+    # All times are UTC. 14:00 UTC = 19:30 IST (main slot), 15:30 UTC = 21:00 IST (retry only:
+    # it exits immediately if the main run already uploaded today's video).
+    - cron: "0 14 * * *"
+    - cron: "30 15 * * *"
   workflow_dispatch:
     inputs:
       topic:
-        description: "Optional topic (leave empty to let the AI choose)"
+        description: "Optional topic (leave empty to use topics.txt / let the AI choose)"
         type: string
         default: ""
       language:
         description: "Language for narration and script"
         type: choice
-        options:
-          - "hi"
-          - "en"
-          - "es"
+        options: ["hi", "en", "es"]
         default: "hi"
       cartoon_style:
         description: "Visual style theme for the AI images"
         type: choice
-        options:
-          - "3D Pixar Cartoon Style"
-          - "None (Realistic)"
-        default: "3D Pixar Cartoon Style"  
+        options: ["Stylized 3D animation", "None (Realistic)"]
+        default: "Stylized 3D animation"
       dry_run:
         description: "Render only, do not upload"
+        type: boolean
+        default: false
+      force:
+        description: "Upload even if a video was already uploaded today"
         type: boolean
         default: false
 permissions:
@@ -35,25 +35,24 @@ concurrency: daily-video
 jobs:
   run:
     runs-on: ubuntu-latest
-    timeout-minutes: 25
+    timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-python@v5
         with:
           python-version: "3.11"
           cache: pip
-          
-      # FIXED: Added 'fonts-indic' to ensure Hindi text processing never shows empty boxes
-      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-indic
-      
+      # fonts-noto-core contains Noto Sans Devanagari (Hindi captions)
+      - run: sudo apt-get update && sudo apt-get install -y ffmpeg fonts-dejavu-core fonts-noto-core
       - run: pip install -r requirements.txt
       - name: Generate and upload
         run: python -m src.main
         env:
           TOPIC: ${{ github.event_name == 'workflow_dispatch' && inputs.topic || '' }}
           VIDEO_LANGUAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.language || 'hi' }}
-          CARTOON_STYLE: ${{ github.event_name == 'workflow_dispatch' && inputs.cartoon_style || '3D Pixar Cartoon Style' }}
+          CARTOON_STYLE: ${{ github.event_name == 'workflow_dispatch' && inputs.cartoon_style || 'Stylized 3D animation' }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
+          FORCE_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.force || 'false' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
           POLLINATIONS_API_KEY: ${{ secrets.POLLINATIONS_API_KEY }}
           YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
@@ -65,8 +64,9 @@ jobs:
           name: preview
           path: out/preview.mp4
       - name: Save history
+        if: ${{ always() }}
         run: |
           git config user.name "github-actions"
           git config user.email "actions@users.noreply.github.com"
           git add state/history.json || true
-          git diff --cached --quiet || (git commit -m "update history" && git push)
+          git diff --cached --quiet || (git commit -m "update history" && git pull --rebase && git push)
