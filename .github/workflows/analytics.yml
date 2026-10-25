@@ -1,0 +1,31 @@
+name: weekly-analytics
+on:
+  schedule:
+    - cron: "0 3 * * 1"      # Mondays 03:00 UTC (08:30 IST)
+  workflow_dispatch:
+permissions:
+  contents: write
+concurrency: weekly-analytics
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+          cache: pip
+      - run: pip install -r requirements.txt
+      - name: Fetch video statistics
+        run: python -m src.analytics
+        env:
+          YT_CLIENT_ID: ${{ secrets.YT_CLIENT_ID }}
+          YT_CLIENT_SECRET: ${{ secrets.YT_CLIENT_SECRET }}
+          YT_REFRESH_TOKEN: ${{ secrets.YT_REFRESH_TOKEN }}
+      - name: Save metrics
+        run: |
+          git config user.name "github-actions"
+          git config user.email "actions@users.noreply.github.com"
+          git add state/metrics.json || true
+          git diff --cached --quiet || (git commit -m "update metrics" && git pull --rebase && git push)
