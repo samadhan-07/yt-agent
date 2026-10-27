@@ -13,8 +13,9 @@ Earlier videos - do NOT repeat or closely resemble these:
 {past}
 {winners}
 Rules:
-- Scene 1 is the hook: the single most surprising fact or question, under 12 words. No greeting, no "today we will talk about".
-- Every scene is ONE short sentence (about 8 to 14 words). Plain, relatable language.
+- Scene 1 is the hook: the single most surprising fact or question, under 10 words. No greeting, no "today we will talk about".
+- Every scene is ONE short sentence of 5 to 9 words (never more than 10). Plain, relatable language.
+- The whole narration must stay close to {words} words. Count the words before you answer.
 - The LAST scene must echo the opening idea so the video loops back into the hook.
 - Facts must be accurate and checkable. If you are not sure of a claim, leave it out. No health, medical, legal or money ADVICE; explain things in general terms only.
 - No real people, celebrities, brands, logos, or characters from films, games or cartoons, in the text or the image prompts. Describe ideas generically.
@@ -31,13 +32,14 @@ Return ONLY JSON with this shape:
     {{"text": "one spoken sentence", "image_prompt": "English description of ONE image"}}
   ]
 }}
-Use 12 to 16 scenes. No emojis in "text"."""
+Use 12 to 14 scenes. No emojis in "text"."""
 
 DEFAULT_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash"]
 
 RETRYABLE = {429, 500, 502, 503, 504}
-TRIES_PER_MODEL = 2
+TRIES_PER_MODEL = 3
 BASE_WAIT = 8
+MAX_TOTAL_SECONDS = 600   # give up on script generation after 10 minutes
 
 
 def _model_chain(cfg):
@@ -71,6 +73,10 @@ def _parse_and_validate(resp_json, max_words=None):
     return data
 
 
+def _word_count(data):
+    return sum(len(s["text"].split()) for s in data["scenes"])
+
+
 def generate(cfg, past_titles, topic=None, winners=None):
     key = os.environ["GEMINI_API_KEY"]
     target = int(cfg.get("target_seconds", 38))
@@ -79,7 +85,7 @@ def generate(cfg, past_titles, topic=None, winners=None):
     if winners:
         winners_block = ("Titles that performed best so far (make videos in this spirit, but never repeat them):\n"
                          + "\n".join(f"- {t}" for t in winners) + "\n")
-    prompt = PROMPT.format(
+    base_prompt = PROMPT.format(
         series=cfg.get("series", ""), niche=cfg["niche"], style=cfg.get("style_notes", ""),
         lang=cfg.get("language", "en"), words=words, secs=target,
         past="\n".join(f"- {t}" for t in past_titles) or "(none yet)",
@@ -87,25 +93,33 @@ def generate(cfg, past_titles, topic=None, winners=None):
         topic_line=(f"Make the video about this specific topic: {topic}" if topic
                     else "Pick a fresh, interesting topic yourself that fits the niche."),
     )
-    body = {
-        "contents": [{"parts": [{"text": prompt}]}],
-        "generationConfig": {"responseMimeType": "application/json", "temperature": 1.0},
-    }
+    hard_cap = int(words * 1.7)     # reject only absurdly long scripts
+    soft_cap = int(words * 1.35)    # warn above this
+    feedback = ""
 
+    def make_body():
+        return {
+            "contents": [{"parts": [{"text": base_prompt + feedback}]}],
+            "generationConfig": {"responseMimeType": "application/json", "temperature": 1.0},
+        }
+
+    deadline = time.time() + MAX_TOTAL_SECONDS
     errors = []
     for model in _model_chain(cfg):
         url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         for attempt in range(1, TRIES_PER_MODEL + 1):
             tag = f"{model} (try {attempt}/{TRIES_PER_MODEL})"
             try:
-                r = requests.post(url, params={"key": key}, json=body, timeout=90)
+                if time.time() > deadline:
+                    raise RuntimeError("Script generation gave up after " + str(MAX_TOTAL_SECONDS) + "s:\n  " + "\n  ".join(errors))
+                r = requests.post(url, params={"key": key}, json=make_body(), timeout=90)
 
                 if r.status_code in RETRYABLE:
                     msg = f"HTTP {r.status_code}: {r.text[:200]}"
                     errors.append(f"{tag}: {msg}")
                     print(f"WARN {tag} -> {msg}", flush=True)
                     if attempt < TRIES_PER_MODEL:
-                        wait = BASE_WAIT * attempt + random.uniform(0, 3)
+                        wait = BASE_WAIT * (2 ** (attempt - 1)) + random.uniform(0, 3)
                         print(f"   retrying in {wait:.0f}s...", flush=True)
                         time.sleep(wait)
                     continue
@@ -120,13 +134,19 @@ def generate(cfg, past_titles, topic=None, winners=None):
                     raise RuntimeError(f"{model} returned HTTP {r.status_code}: {r.text[:300]}")
 
                 r.raise_for_status()
-                data = _parse_and_validate(r.json(), max_words=int(words * 1.4))
-                print(f"Script generated with {model}", flush=True)
+                data = _parse_and_validate(r.json(), max_words=hard_cap)
+                n = _word_count(data)
+                if n > soft_cap:
+                    print(f"WARN: script is {n} words (target {words}); video may run long.", flush=True)
+                print(f"Script generated with {model} ({n} words, {len(data['scenes'])} scenes)", flush=True)
                 return data
 
             except RuntimeError:
                 raise
             except (requests.RequestException, ValueError, AssertionError, KeyError) as e:
+                if isinstance(e, AssertionError) and "too long" in str(e):
+                    feedback = (f"\n\nYour previous answer was too long. The limit is about {words} words in total. "
+                                f"Rewrite with fewer scenes and much shorter sentences (5 to 8 words each).")
                 errors.append(f"{tag}: {e!r}")
                 print(f"WARN {tag} -> {e!r}", flush=True)
                 if attempt < TRIES_PER_MODEL:
