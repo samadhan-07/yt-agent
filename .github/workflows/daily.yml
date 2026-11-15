@@ -19,8 +19,8 @@ on:
       cartoon_style:
         description: "Visual style theme for the AI images"
         type: choice
-        options: ["Stylized 3D animation", "None (Realistic)"]
-        default: "Stylized 3D animation"
+        options: ["Colorful 2D cartoon", "None (Realistic)"]
+        default: "Colorful 2D cartoon"
       character:
         description: "Add the cartoon mascot and cartoon voice"
         type: boolean
@@ -54,7 +54,7 @@ jobs:
         env:
           TOPIC: ${{ github.event_name == 'workflow_dispatch' && inputs.topic || '' }}
           VIDEO_LANGUAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.language || 'hi' }}
-          CARTOON_STYLE: ${{ github.event_name == 'workflow_dispatch' && inputs.cartoon_style || 'Stylized 3D animation' }}
+          CARTOON_STYLE: ${{ github.event_name == 'workflow_dispatch' && inputs.cartoon_style || 'Colorful 2D cartoon' }}
           CHARACTER: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.character) || 'true' }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
           FORCE_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.force || 'false' }}
