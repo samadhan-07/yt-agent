@@ -1,8 +1,8 @@
 name: daily-video
 on:
   schedule:
-    # All times are UTC. 14:00 UTC = 19:30 IST (main slot), 15:30 UTC = 21:00 IST (retry only:
-    # it exits immediately if the main run already uploaded today's video).
+    # All times are UTC. 02:30 UTC = 08:00 IST, 12:30 UTC = 18:00 IST.
+    # max_per_day in config.yaml controls how many uploads are allowed per day.
     - cron: "30 2 * * *"
     - cron: "30 12 * * *"
   workflow_dispatch:
@@ -21,6 +21,10 @@ on:
         type: choice
         options: ["Stylized 3D animation", "None (Realistic)"]
         default: "Stylized 3D animation"
+      character:
+        description: "Add the cartoon mascot and cartoon voice"
+        type: boolean
+        default: true
       dry_run:
         description: "Render only, do not upload"
         type: boolean
@@ -51,6 +55,7 @@ jobs:
           TOPIC: ${{ github.event_name == 'workflow_dispatch' && inputs.topic || '' }}
           VIDEO_LANGUAGE: ${{ github.event_name == 'workflow_dispatch' && inputs.language || 'hi' }}
           CARTOON_STYLE: ${{ github.event_name == 'workflow_dispatch' && inputs.cartoon_style || 'Stylized 3D animation' }}
+          CHARACTER: ${{ github.event_name == 'workflow_dispatch' && format('{0}', inputs.character) || 'true' }}
           DRY_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.dry_run || 'false' }}
           FORCE_RUN: ${{ github.event_name == 'workflow_dispatch' && inputs.force || 'false' }}
           GEMINI_API_KEY: ${{ secrets.GEMINI_API_KEY }}
