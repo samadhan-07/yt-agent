@@ -1,13 +1,15 @@
 import json, os, random, sys, time, requests
 
-PROMPT = """You write scripts for a faceless YouTube Shorts series for teenagers and young adults in India.
-The content is family-friendly and NOT aimed at young children.
+PROMPT = """You write scripts for a cartoon-animated YouTube Shorts series for a family audience in India.
+The narrator is Bittu, a cheerful cartoon mascot who talks straight to the viewer in a playful, energetic voice.
+The content is family-friendly and suitable for all ages, but NOT directed specifically at young children.
 Series name: {series}
 Channel niche: {niche}
 Style: {style}
 Language of ALL narration, the title and the description: {lang} (if Hindi, write in Devanagari and keep common English tech words where they sound natural).
 Narration length: about {words} words in total (about {secs} seconds when spoken).
 {topic_line}
+{format_line}
 
 Earlier videos - do NOT repeat or closely resemble these:
 {past}
@@ -17,10 +19,11 @@ Rules:
 - Every scene is ONE short sentence of 5 to 9 words (never more than 10). Plain, relatable language.
 - The whole narration must stay close to {words} words. Count the words before you answer.
 - The LAST scene must echo the opening idea so the video loops back into the hook.
+- Write in Bittu's playful voice: an occasional short exclamation or fun sound word is welcome, but never at the cost of accuracy.
 - Facts must be accurate and checkable. If you are not sure of a claim, leave it out. No health, medical, legal or money ADVICE; explain things in general terms only.
 - No real people, celebrities, brands, logos, or characters from films, games or cartoons, in the text or the image prompts. Describe ideas generically.
 - No clickbait lies and no fear-mongering.
-- image_prompt: ONE concrete visual in English (subject, setting, mood, camera angle). No text or letters in the image. Vary the composition between scenes.
+- image_prompt: ONE colorful cartoon-style BACKGROUND scene in English (setting, objects, mood, camera angle) that matches the sentence. No people and no characters (the mascot is added later), no text or letters. Vary the composition between scenes.
 
 Return ONLY JSON with this shape:
 {{
@@ -77,7 +80,7 @@ def _word_count(data):
     return sum(len(s["text"].split()) for s in data["scenes"])
 
 
-def generate(cfg, past_titles, topic=None, winners=None):
+def generate(cfg, past_titles, topic=None, winners=None, fmt=None):
     key = os.environ["GEMINI_API_KEY"]
     target = int(cfg.get("target_seconds", 38))
     words = int(target * 2.5)
@@ -90,6 +93,7 @@ def generate(cfg, past_titles, topic=None, winners=None):
         lang=cfg.get("language", "en"), words=words, secs=target,
         past="\n".join(f"- {t}" for t in past_titles) or "(none yet)",
         winners=winners_block,
+        format_line=(f"Format of today's video: {fmt}" if fmt else ""),
         topic_line=(f"Make the video about this specific topic: {topic}" if topic
                     else "Pick a fresh, interesting topic yourself that fits the niche."),
     )
