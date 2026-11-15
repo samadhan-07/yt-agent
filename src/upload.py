@@ -29,7 +29,7 @@ def _insert(yt, path, snippet, status):
     return resp["id"]
 
 
-def upload(path, title, description, tags, privacy="private", category_id="27", made_for_kids=False):
+def upload(path, title, description, tags, privacy="private", category_id="27", made_for_kids=False, publish_at=None):
     snippet = {
         "title": title[:100],
         "description": description[:4900],
@@ -41,6 +41,9 @@ def upload(path, title, description, tags, privacy="private", category_id="27", 
         "selfDeclaredMadeForKids": bool(made_for_kids),
         "containsSyntheticMedia": True,   # YouTube's "altered or synthetic content" disclosure
     }
+    if publish_at:   # YouTube keeps it private and makes it public by itself at this UTC time
+        status["privacyStatus"] = "private"
+        status["publishAt"] = publish_at
     yt = _service()
     try:
         return _insert(yt, path, snippet, status)
