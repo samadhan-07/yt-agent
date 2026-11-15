@@ -1,14 +1,14 @@
 # ---- Channel / content ----
-series: "रोज़ का एक राज़"
-niche: "science, space, tech and brain facts explained simply for teenagers and young adults in India (family-friendly, not for young children)"
-style_notes: "Curious, punchy and relatable. No clickbait lies, no fear-mongering. Hook in the first sentence."
+series: "बिट्टू की कार्टून दुनिया"
+niche: "cartoon-style animated explainers told by a cheerful cartoon mascot called Bittu: funny animal facts, what-if questions, myth vs fact, everyday science, space, the human body and short original stories (family-friendly, suitable for all ages, not directed at young children)"
+style_notes: "Bittu is playful and energetic: short exclamations, simple words, funny comparisons. Hook in the first sentence. No clickbait lies, no fear-mongering."
 language: hi                      # hi / en / es  (the workflow input can override this)
 voice: hi-IN-MadhurNeural         # used when language is not in main.LANGS; run: edge-tts --list-voices
 target_seconds: 38                # narration length; 12-16 scenes means a new image every ~2.5 s
 videos_per_run: 1                 # videos made by ONE workflow run
 max_per_day: 2                    # total uploads per day across runs (8 AM + 6 PM IST)
-# Optional: override the default stylized look used for every image
-# visual_style: "stylized 3D animated illustration, soft cinematic lighting, vibrant colors, clean composition, vertical 9:16, no text, no captions, no logos"
+# Look used for every AI background image (the mascot is added on top)
+visual_style: "colorful 2D cartoon animation background, bold clean outlines, bright flat colors, cheerful mood, vertical 9:16, no text, no captions, no logos"
 
 # ---- LLM (Google AI Studio free tier) ----
 gemini_models: ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash"]
@@ -32,5 +32,20 @@ cartoon_voices:                   # voice per language; check with: edge-tts --l
   hi: hi-IN-SwaraNeural
   en: en-US-AnaNeural
   es: es-ES-ElviraNeural
-voice_pitch: "+40Hz"   # higher = more cartoon
-voice_rate: "+12%"     # faster = more energetic
+voice_pitch: "+40Hz"              # higher = more cartoon
+voice_rate: "+12%"                # faster = more energetic
+
+# ---- Daily variety: the video format rotates every run (8 AM and 6 PM get different ones) ----
+formats:
+  - "Funny animal fact told like a mini story, ending with a surprising twist"
+  - "Quick riddle: ask it in the first scene, give clues, reveal the answer in the last scenes"
+  - "What if...? A silly imagination question answered with real science"
+  - "Myth vs fact: state a popular myth, then explain the truth in a fun way"
+  - "Everyday science trick: why something we see daily happens"
+  - "Short original story with a tiny lesson (invent new characters, no famous ones)"
+  - "Mini quiz: ask a question, pause with a hint, then give the answer"
+
+# ---- YouTube audience ----
+# false = NOT made for kids. Cartoon channels can be treated as kids' content by YouTube; if you set
+# true, comments and some features are turned off, but it is the safe answer if you aim at young children.
+made_for_kids: false
