@@ -5,8 +5,7 @@ style_notes: "Bittu is playful and energetic: short exclamations, simple words, 
 language: hi                      # hi / en / es  (the workflow input can override this)
 voice: hi-IN-MadhurNeural         # used when language is not in main.LANGS; run: edge-tts --list-voices
 target_seconds: 38                # narration length; 12-16 scenes means a new image every ~2.5 s
-videos_per_run: 1                 # videos made by ONE workflow run
-max_per_day: 2                    # total uploads per day across runs (8 AM + 6 PM IST)
+videos_per_run: 1                 # videos made by ONE workflow run (4 runs a day = 4 videos)
 # Look used for every AI background image (the mascot is added on top)
 visual_style: "colorful 2D cartoon animation background, bold clean outlines, bright flat colors, cheerful mood, vertical 9:16, no text, no captions, no logos"
 
@@ -18,7 +17,7 @@ image_model: flux
 image_delay_seconds: 16           # anonymous tier ~1 req / 15 s; lower it if you set POLLINATIONS_API_KEY
 
 # ---- YouTube ----
-privacy: public                   # "private" = nobody can watch. Set to private only while testing.
+privacy: public                   # only used when scheduling is off or the run is forced; scheduled videos stay private until their slot
 category_id: "27"                 # 27 = Education, 28 = Science & Tech
 extra_tags: [shorts, science, facts]
 disclosure_line: "AI-assisted visuals and voice."
@@ -49,3 +48,11 @@ formats:
 # false = NOT made for kids. Cartoon channels can be treated as kids' content by YouTube; if you set
 # true, comments and some features are turned off, but it is the safe answer if you aim at young children.
 made_for_kids: false
+
+# ---- Scheduled release (videos are made off-peak, then go public at Indian peak times) ----
+schedule_publish: true
+publish_times_ist:                # morning, lunch, evening, late evening. Check Studio > Analytics > Audience
+  - "08:00"                       # ("When your viewers are on YouTube") and move these to your own best hours.
+  - "13:00"
+  - "18:30"
+  - "21:00"
