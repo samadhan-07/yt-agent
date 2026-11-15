@@ -48,13 +48,43 @@ def pick_topic(st):
     return topic
 
 
-def pick_format(cfg):
-    """Rotate the video format so every run (8 AM / 6 PM, every day) feels different."""
+def pick_format(cfg, st):
+    """Rotate the video format on every upload so consecutive videos feel different."""
     fmts = cfg.get("formats") or []
     if not fmts:
         return None
-    now = datetime.datetime.utcnow()
-    return fmts[(now.toordinal() * 2 + (1 if now.hour >= 7 else 0)) % len(fmts)]
+    return fmts[len(st.get("videos", [])) % len(fmts)]
+
+
+IST = datetime.timezone(datetime.timedelta(hours=5, minutes=30))
+
+
+def next_free_slot(cfg, st, min_lead_min=60, horizon_hours=36):
+    """Find the next public-release slot (Indian peak times) that nobody has taken yet.
+    Returns ("off", None) if scheduling is disabled, ("full", None) if every slot in the next
+    horizon_hours is taken, otherwise ("slot", "2026-11-16T02:30:00Z")."""
+    times = cfg.get("publish_times_ist") or []
+    if not times or not cfg.get("schedule_publish", True):
+        return "off", None
+    now = datetime.datetime.now(datetime.timezone.utc)
+    earliest = now + datetime.timedelta(minutes=min_lead_min)
+    latest = now + datetime.timedelta(hours=horizon_hours)
+    taken = {v.get("publish_at") for v in st.get("videos", []) if v.get("publish_at")}
+    free = []
+    for day in range(3):
+        d = (now.astimezone(IST) + datetime.timedelta(days=day)).date()
+        for hhmm in times:
+            hh, mm = (int(x) for x in str(hhmm).split(":"))
+            slot = datetime.datetime(d.year, d.month, d.day, hh, mm, tzinfo=IST).astimezone(datetime.timezone.utc)
+            iso = slot.strftime("%Y-%m-%dT%H:%M:%SZ")
+            if earliest <= slot <= latest and iso not in taken:
+                free.append(iso)
+    return ("slot", min(free)) if free else ("full", None)
+
+
+def ist_label(iso):
+    dt = datetime.datetime.strptime(iso, "%Y-%m-%dT%H:%M:%SZ").replace(tzinfo=datetime.timezone.utc)
+    return dt.astimezone(IST).strftime("%d %b %H:%M IST")
 
 
 def uploaded_today_count(st):
@@ -66,7 +96,7 @@ def uploaded_today_count(st):
 
 def make_one(cfg, st, dry_run):
     selected_topic = pick_topic(st)
-    fmt = pick_format(cfg)
+    fmt = pick_format(cfg, st)
     print(f"Format: {fmt}")
     data = script_gen.generate(cfg, state.past_titles(st), selected_topic, state.top_titles(), fmt)
 
@@ -148,14 +178,22 @@ def make_one(cfg, st, dry_run):
         summary(f"DRY RUN: saved out/preview.mp4 for '{data['title']}', skipping upload.")
         return
 
+    mode, slot = next_free_slot(cfg, st)
+    if mode == "full" and not force:
+        summary("All publish slots in the next 36 hours are taken. Video was not uploaded.")
+        return
+    publish_at = slot if mode == "slot" else None
     vid = upload.upload(final, title, desc, tags, cfg.get("privacy", "public"),
                         cfg.get("category_id", "27"),
-                        made_for_kids=bool(cfg.get("made_for_kids", False)))
-    summary(f"Uploaded '{data['title']}': https://youtu.be/{vid} (privacy: {cfg.get('privacy', 'public')})")
+                        made_for_kids=bool(cfg.get("made_for_kids", False)),
+                        publish_at=publish_at)
+    when = f"scheduled public at {ist_label(publish_at)}" if publish_at else f"privacy: {cfg.get('privacy', 'public')}"
+    summary(f"Uploaded '{data['title']}': https://youtu.be/{vid} ({when})")
     st["videos"].append({
         "title": data["title"],
         "id": vid,
         "by": "yt-agent",
+        "publish_at": publish_at,
         "date": datetime.datetime.utcnow().strftime("%Y-%m-%d"),
     })
     if selected_topic:
@@ -182,11 +220,14 @@ def main():
 
     per_run = int(cfg.get("videos_per_run", 1))
 
-    # Makes the retry cron safe: if this pipeline already uploaded today, exit cleanly.
-    max_day = int(cfg.get("max_per_day", per_run))
-    if not dry and not force and uploaded_today_count(st) >= max_day:
-        summary(f"Already uploaded {max_day} video(s) today by yt-agent. Nothing to do.")
+    # Slot guard: every run fills the next free publish slot. If none is free, stop before
+    # spending any API calls.
+    mode, slot = next_free_slot(cfg, st)
+    if mode == "full" and not dry and not force:
+        summary("All publish slots in the next 36 hours are taken. Nothing to do.")
         sys.exit(0)
+    if mode == "slot":
+        print(f"Next free publish slot: {ist_label(slot)}", flush=True)
 
     failures = 0
     for _ in range(per_run):
