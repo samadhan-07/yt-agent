@@ -29,7 +29,7 @@ def _insert(yt, path, snippet, status):
     return resp["id"]
 
 
-def upload(path, title, description, tags, privacy="private", category_id="27"):
+def upload(path, title, description, tags, privacy="private", category_id="27", made_for_kids=False):
     snippet = {
         "title": title[:100],
         "description": description[:4900],
@@ -38,7 +38,7 @@ def upload(path, title, description, tags, privacy="private", category_id="27"):
     }
     status = {
         "privacyStatus": privacy,
-        "selfDeclaredMadeForKids": False,
+        "selfDeclaredMadeForKids": bool(made_for_kids),
         "containsSyntheticMedia": True,   # YouTube's "altered or synthetic content" disclosure
     }
     yt = _service()
