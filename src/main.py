@@ -48,6 +48,15 @@ def pick_topic(st):
     return topic
 
 
+def pick_format(cfg):
+    """Rotate the video format so every run (8 AM / 6 PM, every day) feels different."""
+    fmts = cfg.get("formats") or []
+    if not fmts:
+        return None
+    now = datetime.datetime.utcnow()
+    return fmts[(now.toordinal() * 2 + (1 if now.hour >= 7 else 0)) % len(fmts)]
+
+
 def uploaded_today_count(st):
     today = datetime.datetime.utcnow().strftime("%Y-%m-%d")
     # only count uploads made by THIS pipeline (other tools/old entries must not block it)
@@ -57,7 +66,9 @@ def uploaded_today_count(st):
 
 def make_one(cfg, st, dry_run):
     selected_topic = pick_topic(st)
-    data = script_gen.generate(cfg, state.past_titles(st), selected_topic, state.top_titles())
+    fmt = pick_format(cfg)
+    print(f"Format: {fmt}")
+    data = script_gen.generate(cfg, state.past_titles(st), selected_topic, state.top_titles(), fmt)
 
     base_style = cfg.get("cartoon_style", "").strip()
     look = cfg.get("visual_style") or (STYLIZED_LOOK if base_style else REALISTIC_LOOK)
@@ -138,7 +149,8 @@ def make_one(cfg, st, dry_run):
         return
 
     vid = upload.upload(final, title, desc, tags, cfg.get("privacy", "public"),
-                        cfg.get("category_id", "27"))
+                        cfg.get("category_id", "27"),
+                        made_for_kids=bool(cfg.get("made_for_kids", False)))
     summary(f"Uploaded '{data['title']}': https://youtu.be/{vid} (privacy: {cfg.get('privacy', 'public')})")
     st["videos"].append({
         "title": data["title"],
