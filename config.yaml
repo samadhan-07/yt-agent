@@ -5,7 +5,8 @@ style_notes: "Curious, punchy and relatable. No clickbait lies, no fear-mongerin
 language: hi                      # hi / en / es  (the workflow input can override this)
 voice: hi-IN-MadhurNeural         # used when language is not in main.LANGS; run: edge-tts --list-voices
 target_seconds: 38                # narration length; 12-16 scenes means a new image every ~2.5 s
-videos_per_run: 1
+videos_per_run: 1                 # videos made by ONE workflow run
+max_per_day: 2                    # total uploads per day across runs (8 AM + 6 PM IST)
 # Optional: override the default stylized look used for every image
 # visual_style: "stylized 3D animated illustration, soft cinematic lighting, vibrant colors, clean composition, vertical 9:16, no text, no captions, no logos"
 
@@ -21,3 +22,15 @@ privacy: public                   # "private" = nobody can watch. Set to private
 category_id: "27"                 # 27 = Education, 28 = Science & Tech
 extra_tags: [shorts, science, facts]
 disclosure_line: "AI-assisted visuals and voice."
+
+# ---- Cartoon mascot + cartoon voice ----
+character:
+  enabled: true
+  size: 600                       # mascot size in pixels (video is 1080x1920)
+  bottom_margin: 340              # keep it above the YouTube Shorts buttons
+cartoon_voices:                   # voice per language; check with: edge-tts --list-voices
+  hi: hi-IN-SwaraNeural
+  en: en-US-AnaNeural
+  es: es-ES-ElviraNeural
+voice_pitch: "+40Hz"   # higher = more cartoon
+voice_rate: "+12%"     # faster = more energetic
