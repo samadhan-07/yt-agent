@@ -1,5 +1,5 @@
 import datetime, os, pathlib, random, shutil, sys, traceback, yaml
-from . import script_gen, tts, imagegen, render, upload, state
+from . import script_gen, tts, imagegen, render, upload, state, character
 
 # Flush every line so stdout/stderr appear in the correct order in GitHub Actions logs
 try:
@@ -62,6 +62,11 @@ def make_one(cfg, st, dry_run):
     base_style = cfg.get("cartoon_style", "").strip()
     look = cfg.get("visual_style") or (STYLIZED_LOOK if base_style else REALISTIC_LOOK)
     data["visual_style"] = (base_style + ", " if base_style else "") + look
+    char_cfg = cfg.get("character") or {}
+    use_char = bool(char_cfg.get("enabled"))
+    if use_char:   # the mascot is overlaid later, so the AI images must be empty backgrounds
+        data["visual_style"] += (", background scene only, no people, no characters, "
+                                 "keep the lower third of the frame simple and uncluttered")
 
     scenes = data["scenes"]
     print(f"Title: {data['title']}  ({len(scenes)} scenes)")
@@ -72,7 +77,16 @@ def make_one(cfg, st, dry_run):
 
     narration = " ".join(s["text"].strip() for s in scenes)
     audio = work / "voice.mp3"
-    words, dur = tts.synthesize(narration, cfg["voice"], str(audio))
+    rate, pitch = ("+0%", "+0Hz")
+    voice = cfg["voice"]
+    if use_char:
+        voice = cfg.get("cartoon_voice") or voice
+        rate, pitch = cfg.get("voice_rate", "+8%"), cfg.get("voice_pitch", "+25Hz")
+    try:
+        words, dur = tts.synthesize(narration, voice, str(audio), rate, pitch)
+    except Exception as e:
+        print(f"WARN: voice '{voice}' failed ({e!r}); using the default voice.", file=sys.stderr, flush=True)
+        words, dur = tts.synthesize(narration, cfg["voice"], str(audio))
     print(f"Narration: {dur:.1f}s")
     if dur > 59:
         print(f"WARNING: narration is {dur:.1f}s (over 59s). Shorter loops perform better.")
@@ -98,7 +112,15 @@ def make_one(cfg, st, dry_run):
         toks = narration.split()
         step = dur / max(len(toks), 1)
         words = [(w, i * step, (i + 1) * step) for i, w in enumerate(toks)]
-    final = render.render(scenes, images, audio, words, dur, work)
+    char_pattern = None
+    if use_char:
+        n_frames = int(dur * render.FPS) + 2
+        levels = character.mouth_levels(audio, render.FPS, n_frames)
+        size = int(char_cfg.get("size", 600))
+        char_pattern = character.render_frames(levels, work / "char", render.FPS, size=size)
+        print(f"Mascot frames: {n_frames}", flush=True)
+    final = render.render(scenes, images, audio, words, dur, work, char_pattern=pathlib.Path(char_pattern) if char_pattern else None,
+                          char_size=int(char_cfg.get("size", 600)), char_bottom=int(char_cfg.get("bottom_margin", 340)))
 
     tags = data.get("hashtags", []) + cfg.get("extra_tags", [])
     hashtags = " ".join("#" + t.replace(" ", "") for t in tags[:5]) + " #Shorts"
@@ -134,6 +156,12 @@ def main():
     code = os.environ.get("VIDEO_LANGUAGE") or cfg.get("language", "en")
     name, voice = LANGS.get(code, (code, cfg["voice"]))
     cfg["language"], cfg["voice"] = name, voice
+    cfg["cartoon_voice"] = (cfg.get("cartoon_voices") or {}).get(code)
+    char_env = os.environ.get("CHARACTER", "").lower()
+    if char_env in ("true", "1", "yes"):
+        cfg.setdefault("character", {})["enabled"] = True
+    elif char_env in ("false", "0", "no"):
+        cfg.setdefault("character", {})["enabled"] = False
     style = os.environ.get("CARTOON_STYLE", "")
     cfg["cartoon_style"] = "" if style.startswith("None") else style
     dry = os.environ.get("DRY_RUN", "").lower() in ("1", "true", "yes")
@@ -143,8 +171,9 @@ def main():
     per_run = int(cfg.get("videos_per_run", 1))
 
     # Makes the retry cron safe: if this pipeline already uploaded today, exit cleanly.
-    if not dry and not force and uploaded_today_count(st) >= per_run:
-        summary("Today's video was already uploaded by yt-agent. Nothing to do.")
+    max_day = int(cfg.get("max_per_day", per_run))
+    if not dry and not force and uploaded_today_count(st) >= max_day:
+        summary(f"Already uploaded {max_day} video(s) today by yt-agent. Nothing to do.")
         sys.exit(0)
 
     failures = 0
