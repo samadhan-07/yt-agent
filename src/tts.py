@@ -1,8 +1,8 @@
 import asyncio, subprocess, edge_tts
 
-async def _run(text, voice, out):
+async def _run(text, voice, out, rate="+0%", pitch="+0Hz"):
     words = []
-    comm = edge_tts.Communicate(text, voice, boundary="WordBoundary")
+    comm = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch, boundary="WordBoundary")
     with open(out, "wb") as f:
         async for ch in comm.stream():
             if ch["type"] == "audio":
@@ -12,9 +12,9 @@ async def _run(text, voice, out):
                 words.append((ch["text"], start, start + ch["duration"] / 1e7))
     return words
 
-def synthesize(text, voice, out_path):
+def synthesize(text, voice, out_path, rate="+0%", pitch="+0Hz"):
     """Returns (word_timings, duration_seconds)."""
-    words = asyncio.run(_run(text, voice, out_path))
+    words = asyncio.run(_run(text, voice, out_path, rate, pitch))
     dur = float(subprocess.check_output(
         ["ffprobe", "-v", "error", "-show_entries", "format=duration",
          "-of", "default=nw=1:nk=1", out_path]).decode().strip())
