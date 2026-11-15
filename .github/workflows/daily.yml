@@ -3,8 +3,8 @@ on:
   schedule:
     # All times are UTC. 14:00 UTC = 19:30 IST (main slot), 15:30 UTC = 21:00 IST (retry only:
     # it exits immediately if the main run already uploaded today's video).
-    - cron: "0 14 * * *"
-    - cron: "30 15 * * *"
+    - cron: "30 2 * * *"
+    - cron: "30 12 * * *"
   workflow_dispatch:
     inputs:
       topic:
