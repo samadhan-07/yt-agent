@@ -18,7 +18,8 @@ def _ts(t):
     return f"{int(h)}:{int(m):02d}:{s:05.2f}"
 
 
-def make_ass(words, path, group=3):
+def make_ass(words, path, group=3, top=False):
+    align, marginv = (8, 300) if top else (2, 520)   # 8 = top centre (used when the mascot sits at the bottom)
     font = "Noto Sans Devanagari" if os.environ.get("VIDEO_LANGUAGE", "hi") == "hi" else "DejaVu Sans"
     # Alignment 2 = bottom centre; MarginV keeps captions above the Shorts buttons/description area
     head = f"""[Script Info]
@@ -28,7 +29,7 @@ PlayResY: {H}
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{font},84,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,7,2,2,60,60,520,1
+Style: Default,{font},84,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,7,2,{align},60,60,{marginv},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -80,7 +81,8 @@ def _pick_music():
     return random.choice(files).resolve() if files else None
 
 
-def render(scenes, image_paths, audio_path, words, total_dur, workdir, out_name="final.mp4"):
+def render(scenes, image_paths, audio_path, words, total_dur, workdir, out_name="final.mp4",
+           char_pattern=None, char_size=600, char_bottom=340):
     workdir = pathlib.Path(workdir)
     music = _pick_music()          # resolve before ffmpeg runs with cwd=workdir
     durs = scene_durations(scenes, words, total_dur)
@@ -100,17 +102,39 @@ def render(scenes, image_paths, audio_path, words, total_dur, workdir, out_name=
     (workdir / "list.txt").write_text("".join(f"file '{s}'\n" for s in segs))
     _run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", "list.txt",
           "-c", "copy", "video.mp4"], cwd=workdir)
-    make_ass(words, workdir / "captions.ass")
+    make_ass(words, workdir / "captions.ass", top=bool(char_pattern))
 
     cmd = ["ffmpeg", "-y", "-i", "video.mp4", "-i", pathlib.Path(audio_path).name]
     if music:
         cmd += ["-stream_loop", "-1", "-i", str(music)]
-        fc = ("[1:a]volume=1.0[v];[2:a]volume=0.10[m];"
-              "[v][m]amix=inputs=2:duration=first:dropout_transition=0,volume=2[a]")
-        cmd += ["-filter_complex", fc, "-vf", "ass=captions.ass", "-map", "0:v", "-map", "[a]"]
         print(f"Background music: {music.name}", flush=True)
+    if char_pattern:
+        cmd += ["-framerate", str(FPS), "-i", str(pathlib.Path(char_pattern).relative_to(workdir))]
+    char_idx = (3 if music else 2)
+    ox, oy = (W - char_size) // 2, H - char_size - char_bottom
+    vchain = "ass=captions.ass"
+    if char_pattern:
+        vchain = f"[0:v][{char_idx}:v]overlay={ox}:{oy}:format=auto,ass=captions.ass"
+    fc = []
+    if music:
+        fc.append("[1:a]volume=1.0[v];[2:a]volume=0.10[m];"
+                  "[v][m]amix=inputs=2:duration=first:dropout_transition=0,volume=2[a]")
+        amap = "[a]"
     else:
-        cmd += ["-vf", "ass=captions.ass", "-map", "0:v", "-map", "1:a"]
+        amap = "1:a"
+    if char_pattern:
+        fc.append(vchain + "[vout]")
+        vmap = "[vout]"
+    else:
+        vmap = "0:v"
+        if not fc:
+            cmd += ["-vf", vchain]
+        else:
+            fc.append("[0:v]" + vchain + "[vout]")
+            vmap = "[vout]"
+    if fc:
+        cmd += ["-filter_complex", ";".join(fc)]
+    cmd += ["-map", vmap, "-map", amap]
     cmd += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
             "-c:a", "aac", "-b:a", "160k", "-shortest", "-movflags", "+faststart", out_name]
     _run(cmd, cwd=workdir)
