@@ -15,7 +15,9 @@ Earlier videos - do NOT repeat or closely resemble these:
 {past}
 {winners}
 Rules:
-- Scene 1 is the hook: the single most surprising fact or question, under 10 words. No greeting, no "today we will talk about".
+- Scene 1 is the hook and must stop the scroll in 2 seconds. Use ONE of: a shocking number, a 'wait, what?' contradiction (\"you have been told this wrongly\"), a direct challenge to the viewer, or a mini-mystery question. Under 10 words. No greeting, no \"today we will talk about\".
+- Scene 2 must make the viewer curious to stay (a tease like \"and the answer is not what you think\"), and the payoff comes late.
+- Relate it to daily Indian life where it fits (chai, monsoon, trains, cricket in general terms, school, festivals), without brands or real people.
 - Every scene is ONE short sentence of 5 to 9 words (never more than 10). Plain, relatable language.
 - The whole narration must stay close to {words} words. Count the words before you answer.
 - The LAST scene must echo the opening idea so the video loops back into the hook.
@@ -27,7 +29,7 @@ Rules:
 
 Return ONLY JSON with this shape:
 {{
-  "title": "max 60 chars, curiosity-driven, honest, in the video language",
+  "title": "max 60 chars, promises a payoff the video really delivers (a surprising number, 'why', 'truth' or 'secret'), in the video language",
   "description": "2 or 3 short sentences that include 2 or 3 searchable keywords",
   "hashtags": ["3 to 5 words without #"],
   "visual_style": "one consistent art direction used for EVERY image",
@@ -95,7 +97,7 @@ def generate(cfg, past_titles, topic=None, winners=None, fmt=None):
         winners=winners_block,
         format_line=(f"Format of today's video: {fmt}" if fmt else ""),
         topic_line=(f"Make the video about this specific topic: {topic}" if topic
-                    else "Pick a fresh, interesting topic yourself that fits the niche."),
+                    else "Pick a fresh topic yourself that would make an Indian family stop scrolling: something surprising, visual and relatable from daily life, nature, space or the body. Avoid dry textbook topics."),
     )
     hard_cap = int(words * 1.7)     # reject only absurdly long scripts
     soft_cap = int(words * 1.35)    # warn above this
