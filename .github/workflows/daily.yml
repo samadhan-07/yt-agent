@@ -4,9 +4,8 @@ on:
     # All times are UTC. Odd minutes avoid GitHub's busy start-of-hour queue, and 02:00-09:00 UTC
     # is night in the USA, when Google's APIs are usually least busy.
     # Each run makes ONE video and books the next free public slot (config.yaml: publish_times_ist).
-    - cron: "47 2 * * *"    # 08:17 IST -> goes public 13:00 IST
-    - cron: "23 4 * * *"    # 09:53 IST -> goes public 18:30 IST
-    - cron: "11 6 * * *"    # 11:41 IST -> goes public 21:00 IST
+    - cron: "47 11 * * *"    # 17:17 IST -> goes public 17:17 IST
+    - cron: "23 14 * * *"    # 19:53 IST -> goes public 19:53 IST
     - cron: "37 8 * * *"    # 14:07 IST -> goes public 08:00 IST next morning
   workflow_dispatch:
     inputs:
