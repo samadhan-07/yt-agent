@@ -26,7 +26,7 @@ disclosure_line: "AI-assisted visuals and voice."
 character:
   enabled: true
   size: 600                       # mascot size in pixels (video is 1080x1920)
-  bottom_margin: 340              # keep it above the YouTube Shorts buttons
+  bottom_margin: 430              # mascot sits above the Like/Share/Subscribe banner
 cartoon_voices:                   # voice per language; check with: edge-tts --list-voices
   hi: hi-IN-SwaraNeural
   en: en-US-AnaNeural
@@ -56,3 +56,10 @@ publish_times_ist:                # morning, lunch, evening, late evening. Check
   - "13:00"
   - "18:30"
   - "21:00"
+
+# ---- "Like / Share / Subscribe" banner at the bottom of the video ----
+cta:
+  enabled: true
+  mode: always                    # always = from second 1 to the end, end = only in the last few seconds
+  seconds: 4                      # used when mode is "end"
+  bottom_margin: 300              # distance from the bottom edge in pixels (keeps clear of the Shorts title area)
