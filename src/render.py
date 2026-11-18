@@ -82,7 +82,8 @@ def _pick_music():
 
 
 def render(scenes, image_paths, audio_path, words, total_dur, workdir, out_name="final.mp4",
-           char_pattern=None, char_size=600, char_bottom=340):
+           char_pattern=None, char_size=600, char_bottom=340,
+           cta_png=None, cta_mode="always", cta_seconds=4.0, cta_bottom=300):
     workdir = pathlib.Path(workdir)
     music = _pick_music()          # resolve before ffmpeg runs with cwd=workdir
     durs = scene_durations(scenes, words, total_dur)
@@ -105,33 +106,49 @@ def render(scenes, image_paths, audio_path, words, total_dur, workdir, out_name=
     make_ass(words, workdir / "captions.ass", top=bool(char_pattern))
 
     cmd = ["ffmpeg", "-y", "-i", "video.mp4", "-i", pathlib.Path(audio_path).name]
+    nxt = 2
+    music_idx = char_idx = cta_idx = None
     if music:
         cmd += ["-stream_loop", "-1", "-i", str(music)]
         print(f"Background music: {music.name}", flush=True)
+        music_idx = nxt; nxt += 1
     if char_pattern:
         cmd += ["-framerate", str(FPS), "-i", str(pathlib.Path(char_pattern).relative_to(workdir))]
-    char_idx = (3 if music else 2)
-    ox, oy = (W - char_size) // 2, H - char_size - char_bottom
-    vchain = "ass=captions.ass"
-    if char_pattern:
-        vchain = f"[0:v][{char_idx}:v]overlay={ox}:{oy}:format=auto,ass=captions.ass"
+        char_idx = nxt; nxt += 1
+    if cta_png:
+        cmd += ["-loop", "1", "-framerate", str(FPS), "-t", f"{total_dur + 2:.2f}",
+                "-i", str(pathlib.Path(cta_png).relative_to(workdir))]
+        cta_idx = nxt; nxt += 1
+
     fc = []
     if music:
-        fc.append("[1:a]volume=1.0[v];[2:a]volume=0.10[m];"
+        fc.append(f"[1:a]volume=1.0[v];[{music_idx}:a]volume=0.10[m];"
                   "[v][m]amix=inputs=2:duration=first:dropout_transition=0,volume=2[a]")
         amap = "[a]"
     else:
         amap = "1:a"
+
+    cur = "0:v"
     if char_pattern:
-        fc.append(vchain + "[vout]")
+        ox, oy = (W - char_size) // 2, H - char_size - char_bottom
+        fc.append(f"[{cur}][{char_idx}:v]overlay={ox}:{oy}:format=auto[vc]")
+        cur = "vc"
+    if cta_png:
+        from PIL import Image
+        cw, ch = Image.open(cta_png).size
+        start_t = max(0.0, total_dur - float(cta_seconds)) if cta_mode == "end" else 1.0
+        fc.append(f"[{cta_idx}:v]format=rgba,fade=t=in:st={start_t:.2f}:d=0.4:alpha=1[cta]")
+        fc.append(f"[{cur}][cta]overlay={(W - cw) // 2}:{H - ch - cta_bottom}:format=auto[vk]")
+        cur = "vk"
+    if char_pattern or cta_png:
+        fc.append(f"[{cur}]ass=captions.ass[vout]")
+        vmap = "[vout]"
+    elif music:
+        fc.append("[0:v]ass=captions.ass[vout]")
         vmap = "[vout]"
     else:
+        cmd += ["-vf", "ass=captions.ass"]
         vmap = "0:v"
-        if not fc:
-            cmd += ["-vf", vchain]
-        else:
-            fc.append("[0:v]" + vchain + "[vout]")
-            vmap = "[vout]"
     if fc:
         cmd += ["-filter_complex", ";".join(fc)]
     cmd += ["-map", vmap, "-map", amap]
