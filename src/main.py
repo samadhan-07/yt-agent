@@ -1,5 +1,5 @@
 import datetime, os, pathlib, random, shutil, sys, traceback, yaml
-from . import script_gen, tts, imagegen, render, upload, state, character
+from . import script_gen, tts, imagegen, render, upload, state, character, cta
 
 # Flush every line so stdout/stderr appear in the correct order in GitHub Actions logs
 try:
@@ -160,8 +160,14 @@ def make_one(cfg, st, dry_run):
         size = int(char_cfg.get("size", 600))
         char_pattern = character.render_frames(levels, work / "char", render.FPS, size=size)
         print(f"Mascot frames: {n_frames}", flush=True)
+    cta_cfg = cfg.get("cta") or {}
+    cta_png = None
+    if cta_cfg.get("enabled"):
+        cta_png = pathlib.Path(cta.make_cta(work / "cta.png"))
     final = render.render(scenes, images, audio, words, dur, work, char_pattern=pathlib.Path(char_pattern) if char_pattern else None,
-                          char_size=int(char_cfg.get("size", 600)), char_bottom=int(char_cfg.get("bottom_margin", 340)))
+                          char_size=int(char_cfg.get("size", 600)), char_bottom=int(char_cfg.get("bottom_margin", 340)),
+                          cta_png=cta_png, cta_mode=cta_cfg.get("mode", "always"),
+                          cta_seconds=float(cta_cfg.get("seconds", 4)), cta_bottom=int(cta_cfg.get("bottom_margin", 300)))
 
     tags = data.get("hashtags", []) + cfg.get("extra_tags", [])
     hashtags = " ".join("#" + t.replace(" ", "") for t in tags[:5]) + " #Shorts"
