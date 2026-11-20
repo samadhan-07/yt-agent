@@ -153,12 +153,16 @@ def make_one(cfg, st, dry_run):
         toks = narration.split()
         step = dur / max(len(toks), 1)
         words = [(w, i * step, (i + 1) * step) for i, w in enumerate(toks)]
+    durs = render.scene_durations(scenes, words, dur)
     char_pattern = None
     if use_char:
         n_frames = int(dur * render.FPS) + 2
         levels = character.mouth_levels(audio, render.FPS, n_frames)
         size = int(char_cfg.get("size", 600))
-        char_pattern = character.render_frames(levels, work / "char", render.FPS, size=size)
+        char_pattern = character.render_frames(
+            levels, work / "char", render.FPS, size=size,
+            scenes=scenes, scene_durs=durs, image_paths=images
+        )
         print(f"Mascot frames: {n_frames}", flush=True)
     cta_cfg = cfg.get("cta") or {}
     cta_png = None
@@ -167,7 +171,8 @@ def make_one(cfg, st, dry_run):
     final = render.render(scenes, images, audio, words, dur, work, char_pattern=pathlib.Path(char_pattern) if char_pattern else None,
                           char_size=int(char_cfg.get("size", 600)), char_bottom=int(char_cfg.get("bottom_margin", 340)),
                           cta_png=cta_png, cta_mode=cta_cfg.get("mode", "always"),
-                          cta_seconds=float(cta_cfg.get("seconds", 4)), cta_bottom=int(cta_cfg.get("bottom_margin", 300)))
+                          cta_seconds=float(cta_cfg.get("seconds", 4)), cta_bottom=int(cta_cfg.get("bottom_margin", 300)),
+                          durs=durs)
 
     tags = data.get("hashtags", []) + cfg.get("extra_tags", [])
     hashtags = " ".join("#" + t.replace(" ", "") for t in tags[:5]) + " #Shorts"
