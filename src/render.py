@@ -83,10 +83,12 @@ def _pick_music():
 
 def render(scenes, image_paths, audio_path, words, total_dur, workdir, out_name="final.mp4",
            char_pattern=None, char_size=600, char_bottom=340,
-           cta_png=None, cta_mode="always", cta_seconds=4.0, cta_bottom=300):
+           cta_png=None, cta_mode="always", cta_seconds=4.0, cta_bottom=300,
+           durs=None):
     workdir = pathlib.Path(workdir)
     music = _pick_music()          # resolve before ffmpeg runs with cwd=workdir
-    durs = scene_durations(scenes, words, total_dur)
+    if durs is None:
+        durs = scene_durations(scenes, words, total_dur)
     segs = []
     for i, (img, d) in enumerate(zip(image_paths, durs)):
         n = max(int(d * FPS) + 1, 2)
