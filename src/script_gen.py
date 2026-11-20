@@ -25,6 +25,7 @@ Rules:
 - Facts must be accurate and checkable. If you are not sure of a claim, leave it out. No health, medical, legal or money ADVICE; explain things in general terms only.
 - No real people, celebrities, brands, logos, or characters from films, games or cartoons, in the text or the image prompts. Describe ideas generically.
 - No clickbait lies and no fear-mongering.
+- emotion: choose Bittu's visual expression that best matches the sentence (excited, curious, shocked, thinking, happy, or scared).
 - image_prompt: ONE colorful cartoon-style BACKGROUND scene in English (setting, objects, mood, camera angle) that matches the sentence. No people and no characters (the mascot is added later), no text or letters. Vary the composition between scenes.
 
 Return ONLY JSON with this shape:
@@ -34,7 +35,11 @@ Return ONLY JSON with this shape:
   "hashtags": ["3 to 5 words without #"],
   "visual_style": "one consistent art direction used for EVERY image",
   "scenes": [
-    {{"text": "one spoken sentence", "image_prompt": "English description of ONE image"}}
+    {{
+      "text": "one spoken sentence",
+      "emotion": "one of: excited, curious, shocked, thinking, happy, scared",
+      "image_prompt": "English description of ONE image"
+    }}
   ]
 }}
 Use 12 to 14 scenes. No emojis in "text"."""
@@ -45,6 +50,7 @@ RETRYABLE = {429, 500, 502, 503, 504}
 TRIES_PER_MODEL = 3
 BASE_WAIT = 8
 MAX_TOTAL_SECONDS = 600   # give up on script generation after 10 minutes
+VALID_EMOTIONS = {"excited", "curious", "shocked", "thinking", "happy", "scared"}
 
 
 def _model_chain(cfg):
@@ -72,6 +78,8 @@ def _parse_and_validate(resp_json, max_words=None):
     assert data["title"] and data["visual_style"] and len(data["scenes"]) >= 8, "script too short/incomplete"
     for s in data["scenes"]:
         assert s["text"].strip() and s["image_prompt"].strip(), "empty scene field"
+        emo = str(s.get("emotion", "happy")).strip().lower()
+        s["emotion"] = emo if emo in VALID_EMOTIONS else "happy"
     if max_words:
         n = sum(len(s["text"].split()) for s in data["scenes"])
         assert n <= max_words, f"narration too long ({n} words > {max_words})"
@@ -112,7 +120,7 @@ def generate(cfg, past_titles, topic=None, winners=None, fmt=None):
     deadline = time.time() + MAX_TOTAL_SECONDS
     errors = []
     for model in _model_chain(cfg):
-        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
+        url = f"https://googleapis.com{model}:generateContent"
         for attempt in range(1, TRIES_PER_MODEL + 1):
             tag = f"{model} (try {attempt}/{TRIES_PER_MODEL})"
             try:
