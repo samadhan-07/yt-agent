@@ -120,7 +120,7 @@ def generate(cfg, past_titles, topic=None, winners=None, fmt=None):
     deadline = time.time() + MAX_TOTAL_SECONDS
     errors = []
     for model in _model_chain(cfg):
-        url = f"https://googleapis.com{model}:generateContent"
+        url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:generateContent"
         for attempt in range(1, TRIES_PER_MODEL + 1):
             tag = f"{model} (try {attempt}/{TRIES_PER_MODEL})"
             try:
