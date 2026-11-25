@@ -15,22 +15,22 @@ Earlier videos - do NOT repeat or closely resemble these:
 {past}
 {winners}
 Rules:
-- Scene 1 is the hook and must stop the scroll in 2 seconds. Use ONE of: a shocking number, a 'wait, what?' contradiction (\"you have been told this wrongly\"), a direct challenge to the viewer, or a mini-mystery question. Under 10 words. No greeting, no \"today we will talk about\".
-- Scene 2 must make the viewer curious to stay (a tease like \"and the answer is not what you think\"), and the payoff comes late.
+- Scene 1 is the hook and must stop the scroll in the first 2 seconds. Start immediately with a concrete surprise, shocking number, myth-busting contradiction ("आप जो मानते हैं वो आधा सच है" style), or sharp curiosity question. Under 9 words. Zero filler, zero greetings, zero "आज हम बात करेंगे".
+- Scene 2 must raise the stakes or curiosity gap right away so the viewer stays for the payoff.
 - Relate it to daily Indian life where it fits (chai, monsoon, trains, cricket in general terms, school, festivals), without brands or real people.
-- Every scene is ONE short sentence of 5 to 9 words (never more than 10). Plain, relatable language.
+- Every scene is ONE punchy sentence of 5 to 8 words (never more than 9). Plain, conversational language.
 - The whole narration must stay close to {words} words. Count the words before you answer.
-- The LAST scene must echo the opening idea so the video loops back into the hook.
-- Write in Bittu's playful voice: an occasional short exclamation or fun sound word is welcome, but never at the cost of accuracy.
+- The LAST scene must deliver a crisp payoff and echo the opening hook so the video loops smoothly.
+- Write in Bittu's playful voice: short natural exclamations are fine, but keep factual accuracy front and center.
 - Facts must be accurate and checkable. If you are not sure of a claim, leave it out. No health, medical, legal or money ADVICE; explain things in general terms only.
 - No real people, celebrities, brands, logos, or characters from films, games or cartoons, in the text or the image prompts. Describe ideas generically.
 - No clickbait lies and no fear-mongering.
 - emotion: choose Bittu's visual expression that best matches the sentence (excited, curious, shocked, thinking, happy, or scared).
-- image_prompt: ONE colorful cartoon-style BACKGROUND scene in English (setting, objects, mood, camera angle) that matches the sentence. No people and no characters (the mascot is added later), no text or letters. Vary the composition between scenes.
+- image_prompt: ONE colorful cartoon-style BACKGROUND scene in English (setting, clear focal subject, mood, camera angle) that matches the sentence. Place the main visual action in the upper and middle portion of the frame. No people and no characters (the mascot is added later), no text or letters. Vary the composition between scenes.
 
 Return ONLY JSON with this shape:
 {{
-  "title": "max 60 chars, promises a payoff the video really delivers (a surprising number, 'why', 'truth' or 'secret'), in the video language",
+  "title": "max 60 chars, promises a concrete payoff the video really delivers (a surprising number, 'why', 'truth' or 'secret'), in the video language",
   "description": "2 or 3 short sentences that include 2 or 3 searchable keywords",
   "hashtags": ["3 to 5 words without #"],
   "visual_style": "one consistent art direction used for EVERY image",
@@ -42,14 +42,14 @@ Return ONLY JSON with this shape:
     }}
   ]
 }}
-Use 12 to 14 scenes. No emojis in "text"."""
+Use 10 to 12 scenes. No emojis in "text"."""
 
 DEFAULT_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash"]
 
 RETRYABLE = {429, 500, 502, 503, 504}
 TRIES_PER_MODEL = 3
 BASE_WAIT = 8
-MAX_TOTAL_SECONDS = 600   # give up on script generation after 10 minutes
+MAX_TOTAL_SECONDS = 600
 VALID_EMOTIONS = {"excited", "curious", "shocked", "thinking", "happy", "scared"}
 
 
@@ -92,7 +92,7 @@ def _word_count(data):
 
 def generate(cfg, past_titles, topic=None, winners=None, fmt=None):
     key = os.environ["GEMINI_API_KEY"]
-    target = int(cfg.get("target_seconds", 38))
+    target = int(cfg.get("target_seconds", 30))
     words = int(target * 2.5)
     winners_block = ""
     if winners:
@@ -107,8 +107,8 @@ def generate(cfg, past_titles, topic=None, winners=None, fmt=None):
         topic_line=(f"Make the video about this specific topic: {topic}" if topic
                     else "Pick a fresh topic yourself that would make an Indian family stop scrolling: something surprising, visual and relatable from daily life, nature, space or the body. Avoid dry textbook topics."),
     )
-    hard_cap = int(words * 1.7)     # reject only absurdly long scripts
-    soft_cap = int(words * 1.35)    # warn above this
+    hard_cap = int(words * 1.65)
+    soft_cap = int(words * 1.30)
     feedback = ""
 
     def make_body():
