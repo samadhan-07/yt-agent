@@ -1,15 +1,15 @@
 # ---- Channel / content ----
 series: "बिट्टू की कार्टून दुनिया"
 niche: "cartoon-style animated explainers told by a cheerful cartoon mascot called Bittu: funny animal facts, what-if questions, myth vs fact, everyday science, space, the human body and short original stories (family-friendly, suitable for all ages, not directed at young children)"
-style_notes: "Bittu is playful and energetic: short exclamations, simple words, funny comparisons. Hook in the first sentence. No clickbait lies, no fear-mongering."
+style_notes: "Bittu is playful and energetic: short exclamations, simple words, funny comparisons. Immediate hook in the very first sentence. No clickbait lies, no fear-mongering."
 language: hi                      # hi / en / es  (the workflow input can override this)
 voice: hi-IN-MadhurNeural         # used when language is not in main.LANGS; run: edge-tts --list-voices
-target_seconds: 24                # narration length; 12-16 scenes means a new image every ~2.5 s
+target_seconds: 30                # tighter pacing helps hooks and punchlines land faster
 videos_per_run: 1                 # videos made by ONE workflow run (4 runs a day = 4 videos)
 # Look used for every AI background image (the mascot is added on top)
-visual_style: "colorful 2D cartoon animation background, bold clean outlines, bright flat colors, cheerful mood, vertical 9:16, no text, no captions, no logos"
+visual_style: "colorful 2D cartoon animation background, bold clean outlines, bright vibrant colors, high contrast, cheerful mood, vertical 9:16, no text, no captions, no logos"
 
-# ---- LLM (Google AI Studio free tier) ----
+# ---- LLM (Google AI Studio) ----
 gemini_models: ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash"]
 
 # ---- AI images (Pollinations / FLUX) ----
@@ -25,41 +25,39 @@ disclosure_line: "AI-assisted visuals and voice."
 # ---- Cartoon mascot + cartoon voice ----
 character:
   enabled: true
-  size: 350                       # mascot size in pixels (video is 1080x1920)
-  bottom_margin: 430              # mascot sits above the Like/Share/Subscribe banner
+  size: 600                       # mascot size in pixels (video is 1080x1920)
+  bottom_margin: 430              # mascot sits above the bottom area
 cartoon_voices:                   # voice per language; check with: edge-tts --list-voices
   hi: hi-IN-SwaraNeural
   en: en-US-AnaNeural
   es: es-ES-ElviraNeural
-voice_pitch: "+40Hz"              # higher = more cartoon
-voice_rate: "+12%"                # faster = more energetic
+voice_pitch: "+12Hz"              # gentle cartoon lift without sounding shrill
+voice_rate: "+6%"                 # energetic yet easy to follow
 
-# ---- Daily variety: the video format rotates every run (8 AM and 6 PM get different ones) ----
+# ---- Daily variety: the video format rotates every run ----
 formats:
-  - "Funny animal fact told like a mini story, ending with a surprising twist"
-  - "Quick riddle: ask it in the first scene, give clues, reveal the answer in the last scenes"
   - "What if...? A silly imagination question answered with real science"
   - "Myth vs fact: state a popular myth, then explain the truth in a fun way"
+  - "Funny animal fact told like a mini story, ending with a surprising twist"
   - "Everyday science trick: why something we see daily happens"
+  - "Quick riddle: ask it in the first scene, give clues, reveal the answer in the last scenes"
   - "Short original story with a tiny lesson (invent new characters, no famous ones)"
   - "Mini quiz: ask a question, pause with a hint, then give the answer"
 
 # ---- YouTube audience ----
-# false = NOT made for kids. Cartoon channels can be treated as kids' content by YouTube; if you set
-# true, comments and some features are turned off, but it is the safe answer if you aim at young children.
 made_for_kids: false
 
-# ---- Scheduled release (videos are made off-peak, then go public at Indian peak times) ----
+# ---- Scheduled release ----
 schedule_publish: true
-publish_times_ist:                # morning, lunch, evening, late evening. Check Studio > Analytics > Audience
-  - "08:00"                       # ("When your viewers are on YouTube") and move these to your own best hours.
+publish_times_ist:
+  - "08:00"
   - "13:00"
   - "18:30"
   - "21:00"
 
-# ---- "Like / Share / Subscribe" banner at the bottom of the video ----
+# ---- "Like / Share / Subscribe" banner ----
 cta:
-  enabled: false
-  mode: always                    # always = from second 1 to the end, end = only in the last few seconds
+  enabled: true
+  mode: end                       # end = only in the last few seconds so early frames stay clean
   seconds: 4                      # used when mode is "end"
-  bottom_margin: 300              # distance from the bottom edge in pixels (keeps clear of the Shorts title area)
+  bottom_margin: 300              # distance from the bottom edge in pixels
