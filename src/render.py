@@ -18,10 +18,15 @@ def _ts(t):
     return f"{int(h)}:{int(m):02d}:{s:05.2f}"
 
 
+def _format_caption_word(token):
+    cleaned = token.replace("{", "").replace("}", "")
+    return cleaned.upper() if cleaned.isascii() else cleaned
+
+
 def make_ass(words, path, group=3, top=False):
-    align, marginv = (8, 300) if top else (2, 520)   # 8 = top centre (used when the mascot sits at the bottom)
-    font = "Noto Sans Devanagari" if os.environ.get("VIDEO_LANGUAGE", "hi") == "hi" else "DejaVu Sans"
-    # Alignment 2 = bottom centre; MarginV keeps captions above the Shorts buttons/description area
+    align, marginv = (8, 280) if top else (2, 520)
+    lang = os.environ.get("VIDEO_LANGUAGE", "hi").lower()
+    font = "Noto Sans Devanagari" if lang in ("hi", "hindi") else "DejaVu Sans"
     head = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {W}
@@ -29,7 +34,7 @@ PlayResY: {H}
 
 [V4+ Styles]
 Format: Name, Fontname, Fontsize, PrimaryColour, SecondaryColour, OutlineColour, BackColour, Bold, Italic, Underline, StrikeOut, ScaleX, ScaleY, Spacing, Angle, BorderStyle, Outline, Shadow, Alignment, MarginL, MarginR, MarginV, Encoding
-Style: Default,{font},84,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,7,2,{align},60,60,{marginv},1
+Style: Default,{font},82,&H00FFFFFF,&H000000FF,&H00000000,&H64000000,-1,0,0,0,100,100,0,0,1,7,2,{align},60,60,{marginv},1
 
 [Events]
 Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
@@ -37,7 +42,9 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     lines = []
     for i in range(0, len(words), group):
         chunk = words[i:i + group]
-        text = " ".join(w[0] for w in chunk).upper().replace("{", "").replace("}", "")
+        text = " ".join(_format_caption_word(w[0]) for w in chunk).strip()
+        if not text:
+            continue
         start = chunk[0][1]
         end = words[i + group][1] if i + group < len(words) else chunk[-1][2] + 0.2
         lines.append(f"Dialogue: 0,{_ts(start)},{_ts(end)},Default,,0,0,0,,{text}")
@@ -48,12 +55,12 @@ def _motion(i, n):
     """Ken Burns variants so consecutive scenes feel different."""
     mode = i % 4
     if mode == 0:
-        return f"1+0.22*on/{n}", "(iw-iw/zoom)/2", "(ih-ih/zoom)/2"
+        return f"1.06+0.18*on/{n}", "(iw-iw/zoom)/2", "(ih-ih/zoom)/2"
     if mode == 1:
-        return f"1.22-0.22*on/{n}", "(iw-iw/zoom)/2", "(ih-ih/zoom)/2"
+        return f"1.24-0.18*on/{n}", "(iw-iw/zoom)/2", "(ih-ih/zoom)/2"
     if mode == 2:
-        return f"1.12+0.08*on/{n}", f"(iw-iw/zoom)*on/{n}", "(ih-ih/zoom)/2"
-    return f"1.12+0.08*on/{n}", f"(iw-iw/zoom)*(1-on/{n})", "(ih-ih/zoom)/2"
+        return f"1.14+0.08*on/{n}", f"(iw-iw/zoom)*on/{n}", "(ih-ih/zoom)/2"
+    return f"1.14+0.08*on/{n}", f"(iw-iw/zoom)*(1-on/{n})", "(ih-ih/zoom)/2"
 
 
 def scene_durations(scenes, words, total_dur):
@@ -86,7 +93,7 @@ def render(scenes, image_paths, audio_path, words, total_dur, workdir, out_name=
            cta_png=None, cta_mode="always", cta_seconds=4.0, cta_bottom=300,
            durs=None):
     workdir = pathlib.Path(workdir)
-    music = _pick_music()          # resolve before ffmpeg runs with cwd=workdir
+    music = _pick_music()
     if durs is None:
         durs = scene_durations(scenes, words, total_dur)
     segs = []
