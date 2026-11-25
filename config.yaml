@@ -4,7 +4,7 @@ niche: "cartoon-style animated explainers told by a cheerful cartoon mascot call
 style_notes: "Bittu is playful and energetic: short exclamations, simple words, funny comparisons. Hook in the first sentence. No clickbait lies, no fear-mongering."
 language: hi                      # hi / en / es  (the workflow input can override this)
 voice: hi-IN-MadhurNeural         # used when language is not in main.LANGS; run: edge-tts --list-voices
-target_seconds: 38                # narration length; 12-16 scenes means a new image every ~2.5 s
+target_seconds: 24                # narration length; 12-16 scenes means a new image every ~2.5 s
 videos_per_run: 1                 # videos made by ONE workflow run (4 runs a day = 4 videos)
 # Look used for every AI background image (the mascot is added on top)
 visual_style: "colorful 2D cartoon animation background, bold clean outlines, bright flat colors, cheerful mood, vertical 9:16, no text, no captions, no logos"
@@ -25,7 +25,7 @@ disclosure_line: "AI-assisted visuals and voice."
 # ---- Cartoon mascot + cartoon voice ----
 character:
   enabled: true
-  size: 600                       # mascot size in pixels (video is 1080x1920)
+  size: 350                       # mascot size in pixels (video is 1080x1920)
   bottom_margin: 430              # mascot sits above the Like/Share/Subscribe banner
 cartoon_voices:                   # voice per language; check with: edge-tts --list-voices
   hi: hi-IN-SwaraNeural
@@ -59,7 +59,7 @@ publish_times_ist:                # morning, lunch, evening, late evening. Check
 
 # ---- "Like / Share / Subscribe" banner at the bottom of the video ----
 cta:
-  enabled: true
+  enabled: false
   mode: always                    # always = from second 1 to the end, end = only in the last few seconds
   seconds: 4                      # used when mode is "end"
   bottom_margin: 300              # distance from the bottom edge in pixels (keeps clear of the Shorts title area)
