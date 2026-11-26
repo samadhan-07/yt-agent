@@ -130,12 +130,14 @@ def render(scenes, image_paths, audio_path, words, total_dur, workdir, out_name=
         cta_idx = nxt; nxt += 1
 
     fc = []
+    voice_chain = "[1:a]highpass=f=85,equalizer=f=220:t=q:w=1.2:g=2.5,equalizer=f=3800:t=q:w=1.5:g=-2.0,acompressor=threshold=-18dB:ratio=3:attack=10:release=120[v]"
     if music:
-        fc.append(f"[1:a]volume=1.0[v];[{music_idx}:a]volume=0.10[m];"
-                  "[v][m]amix=inputs=2:duration=first:dropout_transition=0,volume=2[a]")
+        fc.append(f"{voice_chain};[{music_idx}:a]volume=0.14[m];"
+                  "[v][m]amix=inputs=2:duration=first:dropout_transition=0,loudnorm=I=-14:TP=-1.5:LRA=9[a]")
         amap = "[a]"
     else:
-        amap = "1:a"
+        fc.append(f"{voice_chain};[v]loudnorm=I=-14:TP=-1.5:LRA=9[a]")
+        amap = "[a]"
 
     cur = "0:v"
     if char_pattern:
