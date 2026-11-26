@@ -1,4 +1,5 @@
 import os, pathlib, random, subprocess
+from PIL import Image
 
 W, H, FPS = 1080, 1920, 30
 MUSIC_DIR = pathlib.Path("assets/music")
@@ -13,13 +14,15 @@ def _run(cmd, cwd=None):
 
 
 def _ts(t):
-    h, rem = divmod(t, 3600)
+    h, rem = divmod(max(0.0, float(t)), 3600)
     m, s = divmod(rem, 60)
     return f"{int(h)}:{int(m):02d}:{s:05.2f}"
 
 
 def _format_caption_word(token):
-    cleaned = token.replace("{", "").replace("}", "")
+    cleaned = token.replace("{", "").replace("}", "").strip()
+    if not cleaned:
+        return ""
     return cleaned.upper() if cleaned.isascii() else cleaned
 
 
@@ -42,11 +45,12 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
     lines = []
     for i in range(0, len(words), group):
         chunk = words[i:i + group]
-        text = " ".join(_format_caption_word(w[0]) for w in chunk).strip()
+        text = " ".join(w for w in (_format_caption_word(item[0]) for item in chunk) if w)
         if not text:
             continue
         start = chunk[0][1]
-        end = words[i + group][1] if i + group < len(words) else chunk[-1][2] + 0.2
+        raw_end = words[i + group][1] if i + group < len(words) else chunk[-1][2] + 0.2
+        end = max(raw_end, start + 0.25)
         lines.append(f"Dialogue: 0,{_ts(start)},{_ts(end)},Default,,0,0,0,,{text}")
     pathlib.Path(path).write_text(head + "\n".join(lines) + "\n", encoding="utf-8")
 
@@ -88,52 +92,73 @@ def _pick_music():
     return random.choice(files).resolve() if files else None
 
 
+def _rel_or_abs(p, base):
+    p = pathlib.Path(p)
+    try:
+        return str(p.relative_to(base))
+    except ValueError:
+        return str(p.resolve())
+
+
 def render(scenes, image_paths, audio_path, words, total_dur, workdir, out_name="final.mp4",
            char_pattern=None, char_size=600, char_bottom=340,
            cta_png=None, cta_mode="always", cta_seconds=4.0, cta_bottom=300,
            durs=None):
-    workdir = pathlib.Path(workdir)
+    workdir = pathlib.Path(workdir).resolve()
     music = _pick_music()
     if durs is None:
         durs = scene_durations(scenes, words, total_dur)
+
     segs = []
     for i, (img, d) in enumerate(zip(image_paths, durs)):
-        n = max(int(d * FPS) + 1, 2)
+        n = max(int(round(d * FPS)), 2)
         z, x, y = _motion(i, n)
         vf = (f"scale={W * 3 // 2}:{H * 3 // 2}:force_original_aspect_ratio=increase,"
               f"crop={W * 3 // 2}:{H * 3 // 2},"
               f"zoompan=z='{z}':x='{x}':y='{y}':d={n}:s={W}x{H}:fps={FPS},"
               f"setsar=1,format=yuv420p")
         seg = f"seg{i}.mp4"
-        _run(["ffmpeg", "-y", "-i", pathlib.Path(img).name, "-vf", vf,
+        _run(["ffmpeg", "-y", "-i", _rel_or_abs(img, workdir), "-vf", vf,
               "-frames:v", str(n), "-an", "-c:v", "libx264",
               "-preset", "veryfast", "-crf", "23", seg], cwd=workdir)
         segs.append(seg)
-    (workdir / "list.txt").write_text("".join(f"file '{s}'\n" for s in segs))
+
+    (workdir / "list.txt").write_text("".join(f"file '{s}'\n" for s in segs), encoding="utf-8")
     _run(["ffmpeg", "-y", "-f", "concat", "-safe", "0", "-i", "list.txt",
           "-c", "copy", "video.mp4"], cwd=workdir)
     make_ass(words, workdir / "captions.ass", top=bool(char_pattern))
 
-    cmd = ["ffmpeg", "-y", "-i", "video.mp4", "-i", pathlib.Path(audio_path).name]
+    cmd = ["ffmpeg", "-y", "-i", "video.mp4", "-i", _rel_or_abs(audio_path, workdir)]
     nxt = 2
     music_idx = char_idx = cta_idx = None
     if music:
         cmd += ["-stream_loop", "-1", "-i", str(music)]
         print(f"Background music: {music.name}", flush=True)
-        music_idx = nxt; nxt += 1
+        music_idx = nxt
+        nxt += 1
     if char_pattern:
-        cmd += ["-framerate", str(FPS), "-i", str(pathlib.Path(char_pattern).relative_to(workdir))]
-        char_idx = nxt; nxt += 1
+        cmd += ["-framerate", str(FPS), "-i", _rel_or_abs(char_pattern, workdir)]
+        char_idx = nxt
+        nxt += 1
     if cta_png:
         cmd += ["-loop", "1", "-framerate", str(FPS), "-t", f"{total_dur + 2:.2f}",
-                "-i", str(pathlib.Path(cta_png).relative_to(workdir))]
-        cta_idx = nxt; nxt += 1
+                "-i", _rel_or_abs(cta_png, workdir)]
+        cta_idx = nxt
+        nxt += 1
 
     fc = []
-    voice_chain = "[1:a]highpass=f=85,equalizer=f=220:t=q:w=1.2:g=2.5,equalizer=f=3800:t=q:w=1.5:g=-2.0,acompressor=threshold=-18dB:ratio=3:attack=10:release=120[v]"
+    voice_chain = (
+        "[1:a]highpass=f=85,"
+        "equalizer=f=220:t=q:w=1.2:g=2.5,"
+        "equalizer=f=3800:t=q:w=1.5:g=-2.0,"
+        "acompressor=threshold=0.125:ratio=3:attack=10:release=120[v]"
+    )
     if music:
-        fc.append(f"{voice_chain};[{music_idx}:a]volume=0.14[m];"
-                  "[v][m]amix=inputs=2:duration=first:dropout_transition=0,loudnorm=I=-14:TP=-1.5:LRA=9[a]")
+        fc.append(
+            f"{voice_chain};[{music_idx}:a]volume=0.14[m];"
+            "[v][m]amix=inputs=2:duration=first:dropout_transition=0,"
+            "loudnorm=I=-14:TP=-1.5:LRA=9[a]"
+        )
         amap = "[a]"
     else:
         fc.append(f"{voice_chain};[v]loudnorm=I=-14:TP=-1.5:LRA=9[a]")
@@ -145,23 +170,16 @@ def render(scenes, image_paths, audio_path, words, total_dur, workdir, out_name=
         fc.append(f"[{cur}][{char_idx}:v]overlay={ox}:{oy}:format=auto[vc]")
         cur = "vc"
     if cta_png:
-        from PIL import Image
         cw, ch = Image.open(cta_png).size
         start_t = max(0.0, total_dur - float(cta_seconds)) if cta_mode == "end" else 1.0
         fc.append(f"[{cta_idx}:v]format=rgba,fade=t=in:st={start_t:.2f}:d=0.4:alpha=1[cta]")
         fc.append(f"[{cur}][cta]overlay={(W - cw) // 2}:{H - ch - cta_bottom}:format=auto[vk]")
         cur = "vk"
-    if char_pattern or cta_png:
-        fc.append(f"[{cur}]ass=captions.ass[vout]")
-        vmap = "[vout]"
-    elif music:
-        fc.append("[0:v]ass=captions.ass[vout]")
-        vmap = "[vout]"
-    else:
-        cmd += ["-vf", "ass=captions.ass"]
-        vmap = "0:v"
-    if fc:
-        cmd += ["-filter_complex", ";".join(fc)]
+
+    fc.append(f"[{cur}]ass=captions.ass[vout]")
+    vmap = "[vout]"
+
+    cmd += ["-filter_complex", ";".join(fc)]
     cmd += ["-map", vmap, "-map", amap]
     cmd += ["-c:v", "libx264", "-preset", "veryfast", "-crf", "23",
             "-c:a", "aac", "-b:a", "160k", "-shortest", "-movflags", "+faststart", out_name]
