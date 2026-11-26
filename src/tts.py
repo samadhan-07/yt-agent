@@ -1,8 +1,20 @@
-import asyncio, subprocess, edge_tts
+import asyncio, re, subprocess, edge_tts
+
+
+def _humanize_text(text):
+    """Add natural breathing pauses and clean punctuation so edge-tts uses varied intonation."""
+    t = re.sub(r"\s+", " ", text).strip()
+    # Turn ellipses and dashes into slight dramatic pauses
+    t = t.replace("...", "… ").replace(" - ", ", ")
+    # Ensure Hindi danda or period is followed by a clean space for sentence-level prosody
+    t = re.sub(r"([।?!.])([^\s])", r"\1 \2", t)
+    return t
+
 
 async def _run(text, voice, out, rate="+0%", pitch="+0Hz"):
     words = []
-    comm = edge_tts.Communicate(text, voice, rate=rate, pitch=pitch, boundary="WordBoundary")
+    clean_text = _humanize_text(text)
+    comm = edge_tts.Communicate(clean_text, voice, rate=rate, pitch=pitch, boundary="WordBoundary")
     with open(out, "wb") as f:
         async for ch in comm.stream():
             if ch["type"] == "audio":
@@ -11,6 +23,7 @@ async def _run(text, voice, out, rate="+0%", pitch="+0Hz"):
                 start = ch["offset"] / 1e7
                 words.append((ch["text"], start, start + ch["duration"] / 1e7))
     return words
+
 
 def synthesize(text, voice, out_path, rate="+0%", pitch="+0Hz"):
     """Returns (word_timings, duration_seconds)."""
