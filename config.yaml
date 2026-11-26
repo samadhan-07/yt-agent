@@ -25,14 +25,14 @@ disclosure_line: "AI-assisted visuals and voice."
 # ---- Cartoon mascot + cartoon voice ----
 character:
   enabled: true
-  size: 600                       # mascot size in pixels (video is 1080x1920)
-  bottom_margin: 430              # mascot sits above the bottom area
-cartoon_voices:                   # voice per language; check with: edge-tts --list-voices
-  hi: hi-IN-SwaraNeural
-  en: en-US-AnaNeural
-  es: es-ES-ElviraNeural
-voice_pitch: "+12Hz"              # gentle cartoon lift without sounding shrill
-voice_rate: "+6%"                 # energetic yet easy to follow
+  size: 600
+  bottom_margin: 430
+cartoon_voices:
+  hi: hi-IN-MadhurNeural          # matches boy mascot Bittu; sounds far more natural at 0Hz pitch
+  en: en-US-AndrewNeural          # AndrewNeural is one of Edge-TTS's most natural conversational voices
+  es: es-ES-AlvaroNeural
+voice_pitch: "+0Hz"               # CRITICAL: +Hz creates metallic/robotic artifacts in edge-tts
+voice_rate: "+4%"                 # slight energy boost without rushing syllables
 
 # ---- Daily variety: the video format rotates every run ----
 formats:
