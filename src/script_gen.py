@@ -14,16 +14,16 @@ Narration length: about {words} words in total (about {secs} seconds when spoken
 Earlier videos - do NOT repeat or closely resemble these:
 {past}
 {winners}
+# Replace the Rules section inside PROMPT in src/script_gen.py with:
 Rules:
-- Scene 1 is the hook and must stop the scroll in the first 2 seconds. Start immediately with a concrete surprise, shocking number, myth-busting contradiction ("आप जो मानते हैं वो आधा सच है" style), or sharp curiosity question. Under 9 words. Zero filler, zero greetings, zero "आज हम बात करेंगे".
-- Scene 2 must raise the stakes or curiosity gap right away so the viewer stays for the payoff.
+- Scene 1 is the hook and must stop the scroll in 2 seconds. Start immediately with a shocking fact, a direct "रुको!" / "सोचो जरा..." pattern interrupt, or a myth-busting contradiction. Under 9 words. Zero greetings.
+- Write for the EAR, not the eye: use natural spoken Hindi (or {lang}) with conversational fillers ("अरे भाई,", "सच बताऊँ?", "लेकिन रुकिए..."), commas for mid-sentence breaths, and varied sentence rhythm (mix 4-word punchy reactions with 8-10 word explanations).
+- Avoid repetitive sentence endings—do not end every line with the same verb form ("है... है... है...").
 - Relate it to daily Indian life where it fits (chai, monsoon, trains, cricket in general terms, school, festivals), without brands or real people.
-- Every scene is ONE punchy sentence of 5 to 8 words (never more than 9). Plain, conversational language.
 - The whole narration must stay close to {words} words. Count the words before you answer.
 - The LAST scene must deliver a crisp payoff and echo the opening hook so the video loops smoothly.
-- Write in Bittu's playful voice: short natural exclamations are fine, but keep factual accuracy front and center.
 - Facts must be accurate and checkable. If you are not sure of a claim, leave it out. No health, medical, legal or money ADVICE; explain things in general terms only.
-- No real people, celebrities, brands, logos, or characters from films, games or cartoons, in the text or the image prompts. Describe ideas generically.
+- No real people, celebrities, brands, logos, or characters from films, games or cartoons, in the text or the image prompts.
 - No clickbait lies and no fear-mongering.
 - emotion: choose Bittu's visual expression that best matches the sentence (excited, curious, shocked, thinking, happy, or scared).
 - image_prompt: ONE colorful cartoon-style BACKGROUND scene in English (setting, clear focal subject, mood, camera angle) that matches the sentence. Place the main visual action in the upper and middle portion of the frame. No people and no characters (the mascot is added later), no text or letters. Vary the composition between scenes.
