@@ -1,4 +1,5 @@
-import datetime, os, pathlib, random, shutil, sys, traceback, yaml
+import datetime, inspect, os, pathlib, random, shutil, sys, traceback, yaml
+from PIL import Image
 from . import script_gen, tts, imagegen, render, upload, state, character, cta
 
 try:
@@ -8,7 +9,7 @@ except Exception:
     pass
 
 LANGS = {
-    "hi": ("Hindi", "hi-IN-MadhurNeural"),
+    "hi": ("Hindi", "hi-IN-SwaraNeural"),
     "en": ("English", "en-US-BrianMultilingualNeural"),
     "es": ("Spanish", "es-ES-AlvaroNeural"),
 }
@@ -91,6 +92,13 @@ def ist_label(iso):
     return dt.astimezone(IST).strftime("%d %b %H:%M IST")
 
 
+def _emergency_frame(dest_file: str) -> str:
+    """Create a clean dark-slate fallback frame if Scene 1 visual generation fails."""
+    img = Image.new("RGB", (render.W, render.H), (20, 26, 36))
+    img.save(dest_file, format="JPEG", quality=90)
+    return dest_file
+
+
 def make_one(cfg, st, dry_run):
     selected_topic = pick_topic(st)
     fmt = pick_format(cfg, st)
@@ -115,30 +123,31 @@ def make_one(cfg, st, dry_run):
     narration = " ".join(s["text"].strip() for s in scenes)
     audio = work / "voice.mp3"
     voice = cfg["voice"]
-    rate = cfg.get("voice_rate", "-6%")
+    rate = cfg.get("voice_rate", "-1%")
     pitch = cfg.get("voice_pitch", "+0Hz")
 
     try:
         words, dur = tts.synthesize(narration, voice, str(audio), rate, pitch)
     except Exception as e:
         print(
-            f"WARN: voice '{voice}' failed ({e!r}); falling back to en-US-AndrewNeural.",
+            f"WARN: voice '{voice}' failed ({e!r}); falling back to en-US-BrianMultilingualNeural.",
             file=sys.stderr,
             flush=True,
         )
-        words, dur = tts.synthesize(narration, "en-US-AndrewNeural", str(audio), rate, pitch)
+        words, dur = tts.synthesize(narration, "en-US-BrianMultilingualNeural", str(audio), rate, pitch)
     print(f"Narration: {dur:.1f}s")
 
     seed = int.from_bytes(os.urandom(3), "big")
     images = []
     for i, s in enumerate(scenes):
         vtype = s.get("visual_type", "illustration")
+        dest_file = str(work / f"img{i}.jpg")
         print(f"Generating visual {i + 1}/{len(scenes)} [{vtype}]")
         try:
             img = imagegen.generate(
                 s["image_prompt"],
                 data["visual_style"],
-                str(work / f"img{i}.jpg"),
+                dest_file,
                 seed=seed + i,
                 model=cfg.get("image_model", "flux"),
                 delay=cfg.get("image_delay_seconds", 16),
@@ -149,16 +158,18 @@ def make_one(cfg, st, dry_run):
                 quote_author=s.get("quote_author", ""),
                 nature_style=nature_look,
             )
+            if not img:
+                img = dest_file if os.path.exists(dest_file) else None
+            if not img or not os.path.exists(str(img)):
+                raise RuntimeError(f"Visual {i + 1} returned invalid path: {img!r}")
         except Exception as e:
-            if not images:
-                raise
             print(
-                f"WARN: visual {i + 1} failed ({e!r}); reusing the previous visual.",
+                f"WARN: visual {i + 1} failed ({e!r}); using fallback visual.",
                 file=sys.stderr,
                 flush=True,
             )
-            img = images[-1]
-        images.append(img)
+            img = images[-1] if images else _emergency_frame(dest_file)
+        images.append(str(img))
 
     if not words:
         toks = narration.split()
@@ -207,6 +218,17 @@ def make_one(cfg, st, dry_run):
         music_volume=float(cfg.get("music_volume", 0.11)),
     )
 
+    thumb_path = None
+    if hasattr(imagegen, "make_thumbnail"):
+        try:
+            thumb_path = imagegen.make_thumbnail(
+                images[0],
+                data.get("thumbnail_hook") or data["title"],
+                str(work / "thumb.jpg"),
+            )
+        except Exception as e:
+            print(f"WARN: thumbnail generation skipped ({e!r})", file=sys.stderr, flush=True)
+
     is_short = dur <= 60 and render.W < render.H
     tags = data.get("hashtags", []) + cfg.get("extra_tags", [])
     hashtags = " ".join("#" + t.replace(" ", "") for t in tags[:6])
@@ -227,6 +249,8 @@ def make_one(cfg, st, dry_run):
         out = pathlib.Path("out")
         out.mkdir(exist_ok=True)
         shutil.copy(final, out / "preview.mp4")
+        if thumb_path and os.path.exists(thumb_path):
+            shutil.copy(thumb_path, out / "thumb.jpg")
         summary(f"DRY RUN: saved out/preview.mp4 for '{title}', skipping upload.")
         return
 
@@ -237,6 +261,13 @@ def make_one(cfg, st, dry_run):
         return
 
     publish_at = slot if mode == "slot" else None
+    upload_kwargs = {
+        "made_for_kids": bool(cfg.get("made_for_kids", False)),
+        "publish_at": publish_at,
+    }
+    if "thumbnail_path" in inspect.signature(upload.upload).parameters:
+        upload_kwargs["thumbnail_path"] = thumb_path
+
     vid = upload.upload(
         final,
         title,
@@ -244,8 +275,7 @@ def make_one(cfg, st, dry_run):
         tags,
         cfg.get("privacy", "public"),
         cfg.get("category_id", "27"),
-        made_for_kids=bool(cfg.get("made_for_kids", False)),
-        publish_at=publish_at,
+        **upload_kwargs,
     )
     when = (
         f"scheduled public at {ist_label(publish_at)}"
