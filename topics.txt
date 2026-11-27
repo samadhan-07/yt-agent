@@ -1,65 +1,50 @@
-शहद कभी खराब क्यों नहीं होता?
-आपका दिल पूरी ज़िंदगी में कितनी बार धड़कता है?
-अगर सूरज अचानक बुझ जाए तो हमें कितनी देर बाद पता चलेगा?
-क्या साँप सच में दूध पीते हैं?
-प्यासा कौआ: क्या यह कहानी सच हो सकती है?
-क्या शुतुरमुर्ग सच में रेत में सिर छिपाता है?
-क्या हाथी सच में चूहे से डरता है?
-क्या बिल्ली के सच में 9 जीवन होते हैं?
-चीता 0 से 100 की रफ़्तार कितनी तेज़ी से पकड़ता है?
-कौन सा जानवर सबसे ज़्यादा सोता है?
-मच्छर भीड़ में भी आपको ही क्यों ढूँढ लेता है?
-छिपकली सीधी दीवार पर कैसे चिपकी रहती है?
-मकड़ी अपने ही जाल में क्यों नहीं फँसती?
-उल्लू अपनी गर्दन इतनी घुमा कैसे लेता है?
-बिल्ली हमेशा पंजों के बल ही क्यों गिरती है?
-कुत्ते की नाक इंसान से इतनी तेज़ क्यों होती है?
-ऊँट रेगिस्तान में बिना पानी के इतने दिन कैसे चलता है?
-कौए को सबसे चालाक पक्षी क्यों कहते हैं?
-पक्षी हज़ारों किलोमीटर का रास्ता कैसे याद रखते हैं?
-सीप के अंदर मोती कैसे बनता है?
-चाय उबलते ही उफनकर बाहर क्यों गिरती है?
-रोटी तवे पर फूलती क्यों है?
-मिर्च खाने पर जलन होती है, फिर पानी से क्यों नहीं बुझती?
-प्रेशर कुकर की सीटी क्यों बजती है?
-आम पकाने के लिए उन्हें भूसे में क्यों रखते हैं?
-नमक डालने से बर्फ़ जल्दी क्यों पिघलती है?
-फ्रिज अंदर से ठंडा और पीछे से गर्म क्यों होता है?
-AC से पानी की बूँदें क्यों टपकती हैं?
-पंखा बंद करने के बाद भी घूमता क्यों रहता है?
-मोबाइल चार्ज करते समय गर्म क्यों हो जाता है?
-वाई-फ़ाई दीवारों के आर-पार कैसे चला जाता है?
-मोबाइल की स्क्रीन आपकी उँगली को कैसे पहचानती है?
-ट्रेन की पटरियों के बीच पत्थर क्यों बिछे होते हैं?
-हवाई जहाज़ की खिड़की गोल क्यों होती है?
-क्रिकेट की गेंद हवा में स्विंग कैसे होती है?
-बारिश के मौसम में बिजली इतनी क्यों कड़कती है?
-मानसून की बारिश आख़िर कहाँ से आती है?
-सर्दियों में साँस से धुआँ क्यों निकलता दिखता है?
-गोल-गोल घूमने पर चक्कर क्यों आते हैं?
-नाक बंद हो तो खाने का स्वाद क्यों गायब हो जाता है?
-प्याज़ काटते वक़्त आँसू क्यों आते हैं?
-क्या हम सच में सिर्फ़ 5 इंद्रियों से दुनिया जानते हैं?
-सूरज की रोशनी हम तक पहुँचने में कितना समय लगता है?
-चाँद पर रखे पैरों के निशान लाखों साल क्यों नहीं मिटते?
-हमें चाँद का सिर्फ़ एक ही हिस्सा क्यों दिखता है?
-मंगल ग्रह लाल क्यों दिखता है?
-शनि के छल्ले असल में किस चीज़ से बने हैं?
-रेगिस्तान में दिन में गर्मी और रात में ठंड क्यों होती है?
-ज्वालामुखी फटता क्यों है?
-मारियाना ट्रेंच कितनी गहरी है?
-हीरा और कोयला एक ही चीज़ से कैसे बने हैं?
-रेत से काँच कैसे बनता है?
-सोना इतना क़ीमती क्यों है?
-अगर सारे मच्छर खत्म हो जाएँ तो क्या होगा?
-अगर पूरी दुनिया एक साथ कूद जाए तो क्या होगा?
-अगर इंटरनेट एक दिन के लिए बंद हो जाए तो क्या होगा?
-अगर पृथ्वी घूमना बंद कर दे तो क्या होगा?
-अगर चाँद अचानक गायब हो जाए तो क्या होगा?
-अगर सारी मधुमक्खियाँ खत्म हो जाएँ तो क्या होगा?
-कहानी: एक छोटे रोबोट ने पहली बार बारिश देखी
-कहानी: चाँद ने सूरज से क्या कहा?
-कहानी: जादुई पेंसिल जो सिर्फ़ गलतियाँ मिटाती थी
-कहानी: एक छोटे बादल को बारिश बनने से डर लगता था
-कहानी: पानी की बूँद का समंदर से बादल तक का सफ़र
-कहानी: एक बीज जिसे पेड़ बनने की जल्दी थी
+The man who spent his whole life preparing to live
+Why we feel nostalgic for moments we haven't even lived yet
+Albert Camus and the quiet rebellion of making coffee in an absurd world
+The invisible weight of trying to be understood by everyone
+Carl Jung's shadow: why the traits you resent in others live inside you
+What happens when you stop treating your life like a problem to solve
+The library of unwritten versions of yourself
+Søren Kierkegaard on why anxiety is the dizziness of freedom
+Why modern loneliness feels loudest inside a crowded room
+The illusion of the "someday" when everything will finally feel peaceful
+Franz Kafka and the cage whose door was never locked
+Viktor Frankl on finding meaning when nothing goes according to plan
+Why we cling to familiar sadness over uncertain joy
+The art of letting a chapter end without getting closure
+Alan Watts and the backwards law of trying too hard to be happy
+What a sandcastle teaches us about permanence and beauty
+Fyodor Dostoevsky on why comfort alone can never satisfy the human soul
+The quiet grief of outgrowing the person you used to be
+Why slowing down in a hurried world feels like falling behind
+A letter from the version of you ten years in the future
+The train station where everyone is waiting for a train that already left
+Why we mistake constant distraction for peace of mind
+Friedrich Nietzsche and the heavy beauty of loving your fate
+The house with a thousand mirrors and no windows
+Why the things we postpone are usually the things that matter most
+Marcus Aurelius on remaining still while the world spins loudly
+The quiet tragedy of living for an invisible audience
+What happens to a person who never allows themselves to be a beginner
+Leo Tolstoy and the realization that arrives at the end of ambition
+The museum of conversations you never had the courage to start
+Why silence feels uncomfortable until you finally stop running from it
+Arthur Schopenhauer and the hedgehog's dilemma of human closeness
+The clockmaker who forgot how to experience an hour
+Why we mourn futures that only ever existed in our imagination
+Jean-Paul Sartre on the terrifying freedom of having no excuses
+The boat that stayed anchored to protect itself from the sea
+Why true contentment rarely looks like excitement
+Simone de Beauvoir on becoming yourself instead of repeating a script
+The man who collected maps of places he never visited
+Why we only notice the weight of an anchor once we try to move
+Carl Jung on the second half of life and letting go of the ego
+The garden that grew only after the gardener stopped pulling the stems
+Why being ordinary is the hardest thing for the modern mind to accept
+Seneca on how we don't have a short life, we just waste most of it
+The lighthouse keeper who wondered if anyone was still at sea
+Why forgiveness is less about the past and more about putting down a stone
+Martin Heidegger and the strange clarity that comes from remembering mortality
+The painter who waited for the perfect light until sunset
+Why some questions are meant to be lived rather than answered
+The quiet relief of realizing no one is keeping score
