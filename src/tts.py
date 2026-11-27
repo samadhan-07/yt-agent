@@ -2,16 +2,16 @@ import asyncio, re, subprocess, edge_tts
 
 
 def _humanize_text(text):
-    """Add natural breathing pauses and clean punctuation so edge-tts uses varied intonation."""
+    """Add natural contemplative pauses and clean punctuation for reflective narration."""
     t = re.sub(r"\s+", " ", text).strip()
-    # Turn ellipses and dashes into slight dramatic pauses
-    t = t.replace("...", "… ").replace(" - ", ", ")
-    # Ensure Hindi danda or period is followed by a clean space for sentence-level prosody
-    t = re.sub(r"([।?!.])([^\s])", r"\1 \2", t)
+    # Convert ellipses and em/en-dashes into subtle breathing pauses
+    t = t.replace("...", "… ").replace("—", ", ").replace("–", ", ").replace(" - ", ", ")
+    # Ensure sentence-ending punctuation is followed by a clean space for prosody
+    t = re.sub(r"([।?!.;])([^\s])", r"\1 \2", t)
     return t
 
 
-async def _run(text, voice, out, rate="+0%", pitch="+0Hz"):
+async def _run(text, voice, out, rate="-6%", pitch="+0Hz"):
     words = []
     clean_text = _humanize_text(text)
     comm = edge_tts.Communicate(clean_text, voice, rate=rate, pitch=pitch, boundary="WordBoundary")
@@ -25,10 +25,23 @@ async def _run(text, voice, out, rate="+0%", pitch="+0Hz"):
     return words
 
 
-def synthesize(text, voice, out_path, rate="+0%", pitch="+0Hz"):
+def synthesize(text, voice, out_path, rate="-6%", pitch="+0Hz"):
     """Returns (word_timings, duration_seconds)."""
     words = asyncio.run(_run(text, voice, out_path, rate, pitch))
-    dur = float(subprocess.check_output(
-        ["ffprobe", "-v", "error", "-show_entries", "format=duration",
-         "-of", "default=nw=1:nk=1", out_path]).decode().strip())
+    dur = float(
+        subprocess.check_output(
+            [
+                "ffprobe",
+                "-v",
+                "error",
+                "-show_entries",
+                "format=duration",
+                "-of",
+                "default=nw=1:nk=1",
+                out_path,
+            ]
+        )
+        .decode()
+        .strip()
+    )
     return words, dur
