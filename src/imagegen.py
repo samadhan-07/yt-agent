@@ -49,7 +49,6 @@ def _load_font(size: int, italic: bool = False):
 
 def render_quote_card(quote_text: str, author: str, dest: str, seed: int, width: int = 1920, height: int = 1080) -> str:
     """Render an atmospheric minimalist quote card with subtle film grain."""
-    rng = random.Random(seed)
     c_outer, c_inner, accent = QUOTE_PALETTES[seed % len(QUOTE_PALETTES)]
 
     # Build radial vignette background using numpy
@@ -77,7 +76,8 @@ def render_quote_card(quote_text: str, author: str, dest: str, seed: int, width:
     q_font = _load_font(54, italic=False)
     a_font = _load_font(30, italic=True)
 
-    cleaned = f"“{quote_text.strip().strip('\"“”')}”"
+    raw_quote = quote_text.strip().strip('"“”')
+    cleaned = f"“{raw_quote}”"
     wrapped_lines = textwrap.wrap(cleaned, width=38)
 
     line_heights = []
@@ -195,26 +195,4 @@ def generate(
     headers = {}
     key = os.environ.get("POLLINATIONS_API_KEY")
     if key:
-        headers["Authorization"] = f"Bearer {key}"
-        delay = min(delay, 2)
-
-    last = None
-    for attempt in range(5):
-        wait = delay - (time.time() - _last_call)
-        if wait > 0:
-            time.sleep(wait)
-        _last_call = time.time()
-        try:
-            r = requests.get(BASE + quote(full), params=params, headers=headers, timeout=180)
-            ok = r.status_code == 200 and r.headers.get("content-type", "").startswith("image")
-            if ok and len(r.content) > 10_000:
-                img = Image.open(io.BytesIO(r.content)).convert("RGB")
-                if img.size != (width, height):
-                    img = img.resize((width, height), Image.Resampling.LANCZOS)
-                img.save(dest, format="JPEG", quality=92)
-                return dest
-            last = f"HTTP {r.status_code} {r.headers.get('content-type')} ({len(r.content)} bytes)"
-        except Exception as e:
-            last = str(e)
-        time.sleep(5 * (attempt + 1))
-    raise RuntimeError(f"Image generation failed for '{prompt[:50]}...': {last}")
+        headers
