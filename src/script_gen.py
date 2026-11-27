@@ -1,12 +1,12 @@
 import json, os, random, sys, time, requests
 
-PROMPT = """You write 3-minute scripts for a philosophical storytelling and existential psychology YouTube channel inspired by Pursuit of Wonder.
-The narrator speaks in a calm, literary, deeply empathetic voice—never lecturing or using clickbait hype.
+PROMPT = """You write 90-second scripts for a philosophical storytelling and existential psychology YouTube channel inspired by Pursuit of Wonder.
+The narrator speaks in a calm, intimate, deeply empathetic voice—never lecturing or using clickbait hype.
 Series name: {series}
 Channel niche: {niche}
 Style: {style}
-Language of ALL narration, the title, quote text, and the description: {lang}.
-Narration length: about {words} words in total (about {secs} seconds when spoken at a calm, measured pace).
+Language of ALL narration, the title, thumbnail_hook, quote text, and the description: {lang}.
+Narration length: about {words} words in total (about {secs} seconds when spoken at a natural, measured pace).
 {topic_line}
 {format_line}
 
@@ -14,30 +14,33 @@ Earlier videos - do NOT repeat or closely resemble these:
 {past}
 {winners}
 Rules:
-- Structure the 3-minute essay in TWO distinct acts:
-  1. Act 1 (First ~45% of scenes): Tell a quiet, vivid story about an ordinary fictional character experiencing a relatable inner conflict (waiting for life to start, feeling unseen in a crowd, clinging to control, or mourning an imagined future). Show their inner world through concrete sensory details.
-  2. Act 2 (Remaining ~55% of scenes): Gently zoom out from the character's story to unpack the deeper psychological or philosophical truth behind it, weaving in insights from thinkers (such as Albert Camus, Søren Kierkegaard, Carl Jung, Fyodor Dostoevsky, Viktor Frankl, Franz Kafka, Alan Watts, or Stoic philosophers). End with a lingering, comforting reflection.
-- Write for the EAR: use lyrical, natural prose with rhythmic variation—mix quiet observations with deeper philosophical sentences, and use commas or ellipses for thoughtful breathing pauses.
-- Keep the total narration close to {words} words (roughly 30–40 words per scene). Count the words before answering.
-- DYNAMIC VISUAL MIX: Vary "visual_type" naturally across the scenes so the video feels like a curated cinema essay:
-  * "illustration" (~50% of scenes): surrealist editorial metaphor matching the narrative moment.
-  * "nature" (~30% of scenes): tranquil, atmospheric nature scene (misty mountains, quiet ocean horizon, rain on glass, autumn woods) during reflective transitions.
-  * "quote" (~20% of scenes, 2 to 3 scenes total): a typographic quote card highlighting either a famous philosopher's aphorism or the single most resonant sentence from that scene.
-- image_prompt: Required in English for every scene. For "illustration", describe a concrete surrealist visual metaphor (e.g., "a lone silhouette standing inside an enormous hourglass filled with tiny clocks instead of sand"). For "nature", describe a serene landscape in English (e.g., "a quiet wooden dock extending into a mist-covered mountain lake at dawn"). Never include text, letters, or watermarks in image_prompt.
-- quote_text & quote_author: Required when visual_type is "quote" (keep quote_text concise, max 18 words, and quote_author as the thinker's name or "Quiet Thresholds"). Leave as "" for other visual types.
-- music_mood: choose the background soundtrack vibe that best fits this episode ("melancholic_piano", "hopeful_ambient", "cinematic_wonder", or "calm_lofi").
+- FIRST 15 SECONDS HOOK & PACING (Critical for audience retention):
+  * Scene 1 (Hook — strictly 10 to 13 words, ~4 seconds): Drop the viewer immediately into a concrete, intriguing human situation or psychological paradox that directly matches the title and opens a curiosity gap (e.g., "In 1924, a watchmaker stopped every clock in his house—except one."). Zero greetings, zero vague abstractions.
+  * Scenes 2 & 3 (Fast Visual Momentum — strictly 13 to 17 words each, ~5 seconds each): Unfold the immediate tension of the character's dilemma across two distinct visual angles so the opening 15 seconds feel cinematic and engaging.
+  * Scenes 4 to {max_scenes} (Focused Depth — 32 to 42 words per scene, ~13–16 seconds each): Complete the character's brief story in Act 1, then gently zoom out in Act 2 to reveal the deeper psychological or philosophical insight (referencing thinkers like Albert Camus, Søren Kierkegaard, Carl Jung, Fyodor Dostoevsky, Viktor Frankl, Franz Kafka, Alan Watts, or Stoics). End with a single comforting, resonant reflection.
+- Write for the EAR: use lyrical, natural prose with rhythmic variation and commas or ellipses for thoughtful breathing pauses.
+- Hit the target length of ~{words} words. Count the words carefully before answering.
+- DYNAMIC VISUAL MIX: Vary "visual_type" naturally across the scenes:
+  * "illustration" (~60% of scenes): surrealist editorial metaphor matching the narrative moment (always use "illustration" for Scenes 1, 2, and 3).
+  * "nature" (~25% of scenes): tranquil, atmospheric nature scene during reflective transitions after Scene 4.
+  * "quote" (~15% of scenes, 1 scene max, placed after Scene 4): a typographic quote card highlighting a philosopher's aphorism or the single most resonant line from that scene.
+- image_prompt: Required in English for every scene. For "illustration", describe a concrete surrealist visual metaphor with one bold central focal object (e.g., "a solitary man standing inside an enormous hourglass filled with tiny clocks instead of sand"). For "nature", describe a serene landscape in English (e.g., "a quiet wooden dock extending into a mist-covered mountain lake at dawn"). Never include text, letters, or watermarks in image_prompt.
+- thumbnail_hook: A punchy 3 to 5 word intrigue phrase in {lang} (e.g., "THE ILLUSION OF SOMEDAY" or "WHY YOU FEEL BEHIND") that pairs with Scene 1's artwork on the YouTube thumbnail.
+- quote_text & quote_author: Required when visual_type is "quote" (keep quote_text concise, max 16 words, and quote_author as the thinker's name). Leave as "" for other visual types.
+- music_mood: choose the background soundtrack vibe ("melancholic_piano", "hopeful_ambient", "cinematic_wonder", or "calm_lofi").
 - No real living celebrities, brands, logos, or copyrighted characters from films or games.
 
 Return ONLY valid JSON with this exact shape:
 {{
-  "title": "max 65 chars, poetic and thought-provoking title in {lang} (no clickbait, no #Shorts)",
+  "title": "max 60 chars, psychological curiosity title in {lang} that triggers self-reflection (never give away the moral in the title, no #Shorts)",
+  "thumbnail_hook": "3 to 5 word bold curiosity phrase in {lang}",
   "description": "2 to 3 reflective sentences summarizing the video's theme with 2 or 3 searchable philosophy/psychology keywords",
   "hashtags": ["3 to 5 relevant single-word tags without #"],
   "music_mood": "one of: melancholic_piano, hopeful_ambient, cinematic_wonder, calm_lofi",
   "visual_style": "one consistent art direction used for illustration scenes",
   "scenes": [
     {{
-      "text": "2 to 3 unhurried spoken sentences for this scene",
+      "text": "Spoken lines matching the word count rule for this scene number",
       "visual_type": "one of: illustration, nature, quote",
       "emotion": "one of: contemplative, melancholic, curious, serene, hopeful, awe",
       "image_prompt": "English visual description for illustration or nature",
@@ -48,7 +51,7 @@ Return ONLY valid JSON with this exact shape:
 }}
 Use {min_scenes} to {max_scenes} scenes. No emojis in "text"."""
 
-DEFAULT_MODELS = ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-2.5-flash"]
+DEFAULT_MODELS = ["gemini-2.5-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash"]
 
 RETRYABLE = {429, 500, 502, 503, 504}
 TRIES_PER_MODEL = 3
@@ -85,21 +88,20 @@ def _parse_and_validate(resp_json, max_words=None):
 
     mood = str(data.get("music_mood", "melancholic_piano")).strip().lower()
     data["music_mood"] = mood if mood in VALID_MOODS else "melancholic_piano"
+    data["thumbnail_hook"] = str(data.get("thumbnail_hook", "")).strip() or data["title"][:32]
 
     for idx, s in enumerate(data["scenes"]):
         assert s.get("text", "").strip(), f"empty text in scene {idx}"
         vtype = str(s.get("visual_type", "illustration")).strip().lower()
         if vtype not in VALID_VISUAL_TYPES:
             vtype = "illustration"
-        # Ensure scene 0 is always an engaging visual rather than a text-only quote card
-        if idx == 0 and vtype == "quote":
+        if idx < 3 and vtype == "quote":
             vtype = "illustration"
         s["visual_type"] = vtype
 
         if vtype == "quote":
             q_text = str(s.get("quote_text", "")).strip()
             if not q_text:
-                # Fallback to the first sentence of narration if quote_text was omitted
                 q_text = s["text"].split(".")[0].strip() + "."
             s["quote_text"] = q_text
             s["quote_author"] = str(s.get("quote_author", "")).strip()
@@ -124,11 +126,11 @@ def _word_count(data):
 
 def generate(cfg, past_titles, topic=None, winners=None, fmt=None):
     key = os.environ["GEMINI_API_KEY"]
-    target = int(cfg.get("target_seconds", 180))
-    # Calibrated for calm, measured narration (~2.15 words/sec at -6% speaking rate)
-    words = max(120, int(target * 2.15))
-    min_scenes = max(8, target // 18)
-    max_scenes = max(12, target // 13)
+    target = int(cfg.get("target_seconds", 90))
+    # Calibrated to actual Edge-TTS speaking speed (~2.65 words/sec at -1% rate)
+    words = max(100, int(target * 2.65))
+    min_scenes = max(6, target // 14)
+    max_scenes = max(8, target // 10)
 
     winners_block = ""
     if winners:
@@ -157,8 +159,8 @@ def generate(cfg, past_titles, topic=None, winners=None, fmt=None):
         ),
     )
 
-    hard_cap = int(words * 1.50)
-    soft_cap = int(words * 1.25)
+    hard_cap = int(words * 1.45)
+    soft_cap = int(words * 1.20)
     feedback = ""
 
     def make_body():
@@ -167,7 +169,7 @@ def generate(cfg, past_titles, topic=None, winners=None, fmt=None):
             "generationConfig": {
                 "responseMimeType": "application/json",
                 "temperature": 0.9,
-                "maxOutputTokens": 6144,
+                "maxOutputTokens": 4096,
             },
         }
 
