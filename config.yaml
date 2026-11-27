@@ -1,48 +1,47 @@
 # ---- Channel / content ----
-series: "बिट्टू की कार्टून दुनिया"
-niche: "cartoon-style animated explainers told by a cheerful cartoon mascot called Bittu: funny animal facts, what-if questions, myth vs fact, everyday science, space, the human body and short original stories (family-friendly, suitable for all ages, not directed at young children)"
-style_notes: "Bittu is playful and energetic: short exclamations, simple words, funny comparisons. Immediate hook in the very first sentence. No clickbait lies, no fear-mongering."
-language: hi                      # hi / en / es  (the workflow input can override this)
-voice: hi-IN-MadhurNeural         # used when language is not in main.LANGS; run: edge-tts --list-voices
-target_seconds: 30                # tighter pacing helps hooks and punchlines land faster
-videos_per_run: 1                 # videos made by ONE workflow run (4 runs a day = 4 videos)
-# Look used for every AI background image (the mascot is added on top)
-visual_style: "colorful 2D cartoon animation background, bold clean outlines, bright vibrant colors, high contrast, cheerful mood, vertical 9:16, no text, no captions, no logos"
+series: "Quiet Thresholds"
+niche: "philosophical short stories, existential psychology, and literature-inspired thought experiments exploring meaning, time, loneliness, mortality, and the human condition"
+style_notes: "Calm, literary, and deeply empathetic. Begin with a quiet, relatable human moment or fictional character facing an inner dilemma, then gradually zoom out to connect their experience to timeless philosophy (Camus, Kierkegaard, Jung, Dostoevsky, Viktor Frankl, Alan Watts). Avoid hype, loud hooks, or preachy self-help clichés."
+language: en                      # en / hi / es (workflow input can override this)
+voice: en-US-BrianMultilingualNeural
+target_seconds: 180               # 3-minute narrative essay (set to 58 if keeping Shorts)
+videos_per_run: 1                 # 1 deep philosophical essay per run
+
+# Locked visual aesthetic applied to every Pollinations FLUX scene
+visual_style: "flat 2D surrealist editorial vector illustration, muted slate blue and warm ochre color palette, minimalist geometric shapes, atmospheric lighting, subtle paper grain texture, horizontal 16:9, no text, no captions, no logos"
 
 # ---- LLM (Google AI Studio) ----
-gemini_models: ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash"]
+gemini_models: ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-2.5-flash"]
 
 # ---- AI images (Pollinations / FLUX) ----
 image_model: flux
-image_delay_seconds: 16           # anonymous tier ~1 req / 15 s; lower it if you set POLLINATIONS_API_KEY
+image_delay_seconds: 16           # anonymous tier ~1 req / 15 s; lower if POLLINATIONS_API_KEY is set
 
 # ---- YouTube ----
-privacy: public                   # only used when scheduling is off or the run is forced; scheduled videos stay private until their slot
-category_id: "27"                 # 27 = Education, 28 = Science & Tech
-extra_tags: [shorts, science, facts]
-disclosure_line: "AI-assisted visuals and voice."
+privacy: public                   # used when scheduling is off or forced; scheduled videos stay private until slot
+category_id: "27"                 # 27 = Education
+extra_tags: [philosophy, psychology, existentialism, meaning of life, storytelling, video essay]
+disclosure_line: "AI-assisted visuals and narration."
 
-# ---- Cartoon mascot + cartoon voice ----
+# ---- Mascot disabled + meditative narrator voice ----
 character:
-  enabled: true
+  enabled: false                  # disables cartoon mascot overlay
   size: 600
   bottom_margin: 430
 cartoon_voices:
-  hi: hi-IN-MadhurNeural          # matches boy mascot Bittu; sounds far more natural at 0Hz pitch
-  en: en-US-AndrewNeural          # AndrewNeural is one of Edge-TTS's most natural conversational voices
+  hi: hi-IN-MadhurNeural
+  en: en-US-BrianMultilingualNeural
   es: es-ES-AlvaroNeural
-voice_pitch: "+0Hz"               # CRITICAL: +Hz creates metallic/robotic artifacts in edge-tts
-voice_rate: "+4%"                 # slight energy boost without rushing syllables
+voice_pitch: "+0Hz"               # keep at 0Hz to avoid metallic artifacts in edge-tts
+voice_rate: "-6%"                 # slightly slower, contemplative cadence
 
-# ---- Daily variety: the video format rotates every run ----
+# ---- Narrative formats (rotates automatically every run) ----
 formats:
-  - "What if...? A silly imagination question answered with real science"
-  - "Myth vs fact: state a popular myth, then explain the truth in a fun way"
-  - "Funny animal fact told like a mini story, ending with a surprising twist"
-  - "Everyday science trick: why something we see daily happens"
-  - "Quick riddle: ask it in the first scene, give clues, reveal the answer in the last scenes"
-  - "Short original story with a tiny lesson (invent new characters, no famous ones)"
-  - "Mini quiz: ask a question, pause with a hint, then give the answer"
+  - "Philosophical Parable: tell a quiet fictional story about an ordinary person, then reveal how Albert Camus or Søren Kierkegaard explains their struggle"
+  - "Psychological Mirror: explore a subtle modern habit (overthinking, nostalgia, perfectionism) through Carl Jung or Viktor Frankl"
+  - "Thought Experiment: place the viewer inside a surreal metaphor about time, memory, or choice, then unpack its existential meaning"
+  - "Literary Reflection: weave a central idea from Dostoevsky, Kafka, or Tolstoy into a comforting modern reflection"
+  - "Eastern & Stoic Perspective: contrast the modern urge to control everything with Taoist, Zen, or Stoic acceptance"
 
 # ---- YouTube audience ----
 made_for_kids: false
@@ -50,14 +49,11 @@ made_for_kids: false
 # ---- Scheduled release ----
 schedule_publish: true
 publish_times_ist:
-  - "08:00"
-  - "13:00"
-  - "18:30"
-  - "21:00"
+  - "21:00"                       # late-evening slot fits reflective, long-form viewing
 
-# ---- "Like / Share / Subscribe" banner ----
+# ---- End-screen banner disabled for clean cinematic fade-out ----
 cta:
-  enabled: true
-  mode: end                       # end = only in the last few seconds so early frames stay clean
-  seconds: 4                      # used when mode is "end"
-  bottom_margin: 300              # distance from the bottom edge in pixels
+  enabled: false
+  mode: end
+  seconds: 4
+  bottom_margin: 300
