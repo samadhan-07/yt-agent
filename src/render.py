@@ -5,6 +5,13 @@ W, H, FPS = 1920, 1080, 30
 MUSIC_DIR = pathlib.Path("assets/music")
 MUSIC_EXT = {".mp3", ".wav", ".m4a", ".ogg"}
 
+MOOD_KEYWORDS = {
+    "melancholic_piano": ("piano", "melanchol", "sad", "rain", "soft", "solo"),
+    "hopeful_ambient": ("hope", "warm", "light", "uplift", "dawn", "ambient"),
+    "cinematic_wonder": ("cinema", "wonder", "space", "cosmos", "deep", "epic", "string"),
+    "calm_lofi": ("lofi", "chill", "study", "calm", "sleep", "slow"),
+}
+
 
 def _run(cmd, cwd=None):
     try:
@@ -20,14 +27,15 @@ def _ts(t):
 
 
 def _format_caption_word(token):
-    # Preserve natural sentence casing (no shouting ALL-CAPS)
     return token.replace("{", "").replace("}", "").strip()
 
 
-def make_ass(words, path, group=7, top=False):
+def make_ass(words, path, group=7, top=False, mute_windows=None):
     align, marginv = (8, 64) if top else (2, 64)
     lang = os.environ.get("VIDEO_LANGUAGE", "en").lower()
     font = "Noto Sans Devanagari" if lang in ("hi", "hindi") else "DejaVu Sans"
+    mute_windows = mute_windows or []
+
     head = f"""[Script Info]
 ScriptType: v4.00+
 PlayResX: {W}
@@ -49,12 +57,20 @@ Format: Layer, Start, End, Style, Name, MarginL, MarginR, MarginV, Effect, Text
         start = chunk[0][1]
         raw_end = words[i + group][1] if i + group < len(words) else chunk[-1][2] + 0.25
         end = max(raw_end, start + 0.35)
+        mid = 0.5 * (start + end)
+
+        # Skip bottom subtitles while a full-screen quote card is displayed
+        if any(w_start <= mid <= w_end for w_start, w_end in mute_windows):
+            continue
+
         lines.append(f"Dialogue: 0,{_ts(start)},{_ts(end)},Default,,0,0,0,,{text}")
     pathlib.Path(path).write_text(head + "\n".join(lines) + "\n", encoding="utf-8")
 
 
-def _motion(i, n):
-    """Slow, contemplative Ken Burns motion suited to long-form philosophical essays."""
+def _motion(i, n, visual_type="illustration"):
+    """Gentle Ken Burns motion tailored to scene type (minimal zoom on quote cards)."""
+    if visual_type == "quote":
+        return f"1.00+0.025*on/{n}", "(iw-iw/zoom)/2", "(ih-ih/zoom)/2"
     mode = i % 4
     if mode == 0:
         return f"1.02+0.07*on/{n}", "(iw-iw/zoom)/2", "(ih-ih/zoom)/2"
@@ -66,7 +82,7 @@ def _motion(i, n):
 
 
 def scene_durations(scenes, words, total_dur):
-    """Cut each illustration when its corresponding narration begins."""
+    """Cut each visual when its corresponding narration begins."""
     if words and len(words) >= len(scenes):
         counts = [max(len(s["text"].split()), 1) for s in scenes]
         total, n, acc, cuts = sum(counts), len(words), 0, []
@@ -82,11 +98,45 @@ def scene_durations(scenes, words, total_dur):
     return [total_dur * c / sum(chars) for c in chars]
 
 
-def _pick_music():
+def _synthesize_ambient_fallback(workdir: pathlib.Path, duration: float) -> pathlib.Path:
+    """Generate a warm, low-pass filtered ambient harmonic pad if assets/music/ has no tracks."""
+    fallback = workdir / "ambient_pad.wav"
+    # Warm D-minor9 / F-major7 harmonic drone with slow breathing modulation
+    expr = (
+        "0.28*sin(2*PI*146.83*t)*(0.7+0.3*sin(2*PI*0.07*t))+"
+        "0.24*sin(2*PI*220.00*t)*(0.7+0.3*sin(2*PI*0.05*t+1.1))+"
+        "0.20*sin(2*PI*261.63*t)*(0.7+0.3*sin(2*PI*0.06*t+2.3))+"
+        "0.16*sin(2*PI*329.63*t)*(0.6+0.4*sin(2*PI*0.04*t+0.7))+"
+        "0.12*sin(2*PI*73.42*t)"
+    )
+    _run(
+        [
+            "ffmpeg",
+            "-y",
+            "-f",
+            "lavfi",
+            "-i",
+            f"aevalsrc='{expr}':s=44100:d={duration + 3:.2f}",
+            "-af",
+            "lowpass=f=650,aecho=0.8:0.88:60:0.35",
+            str(fallback),
+        ]
+    )
+    return fallback.resolve()
+
+
+def _pick_music(mood: str | None = None):
     if not MUSIC_DIR.exists():
         return None
     files = [p for p in sorted(MUSIC_DIR.iterdir()) if p.suffix.lower() in MUSIC_EXT]
-    return random.choice(files).resolve() if files else None
+    if not files:
+        return None
+    if mood and mood in MOOD_KEYWORDS:
+        keys = MOOD_KEYWORDS[mood]
+        matched = [p for p in files if any(k in p.stem.lower() for k in keys)]
+        if matched:
+            return random.choice(matched).resolve()
+    return random.choice(files).resolve()
 
 
 def _rel_or_abs(p, base):
@@ -106,7 +156,7 @@ def render(
     workdir,
     out_name="final.mp4",
     char_pattern=None,
-    char_size=220,
+    char_size=180,
     char_bottom=60,
     cta_png=None,
     cta_mode="end",
@@ -114,16 +164,31 @@ def render(
     cta_bottom=80,
     durs=None,
     subtitles=True,
+    music_mood=None,
+    music_volume=0.11,
 ):
     workdir = pathlib.Path(workdir).resolve()
-    music = _pick_music()
     if durs is None:
         durs = scene_durations(scenes, words, total_dur)
 
+    music = _pick_music(music_mood)
+    if music is None:
+        music = _synthesize_ambient_fallback(workdir, total_dur)
+        print("Background music: generated warm ambient harmonic pad", flush=True)
+    else:
+        print(f"Background music ({music_mood or 'default'}): {music.name}", flush=True)
+
     segs = []
-    for i, (img, d) in enumerate(zip(image_paths, durs)):
+    quote_windows = []
+    cursor = 0.0
+    for i, (sc, img, d) in enumerate(zip(scenes, image_paths, durs)):
+        vtype = sc.get("visual_type", "illustration")
+        if vtype == "quote":
+            quote_windows.append((cursor, cursor + d))
+        cursor += d
+
         n = max(int(round(d * FPS)), 2)
-        z, x, y = _motion(i, n)
+        z, x, y = _motion(i, n, visual_type=vtype)
         fade_out_st = max(0.1, d - 0.45)
         vf = (
             f"scale={W * 3 // 2}:{H * 3 // 2}:force_original_aspect_ratio=increase,"
@@ -163,14 +228,13 @@ def render(
     )
 
     if subtitles:
-        make_ass(words, workdir / "captions.ass", top=False)
+        make_ass(words, workdir / "captions.ass", top=False, mute_windows=quote_windows)
 
     cmd = ["ffmpeg", "-y", "-i", "video.mp4", "-i", _rel_or_abs(audio_path, workdir)]
     nxt = 2
     music_idx = char_idx = cta_idx = None
     if music:
         cmd += ["-stream_loop", "-1", "-i", str(music)]
-        print(f"Background music: {music.name}", flush=True)
         music_idx = nxt
         nxt += 1
     if char_pattern:
@@ -198,16 +262,15 @@ def render(
         "equalizer=f=3800:t=q:w=1.5:g=-2.0,"
         "acompressor=threshold=0.125:ratio=3:attack=10:release=120[v]"
     )
-    if music:
-        fc.append(
-            f"{voice_chain};[{music_idx}:a]volume=0.12[m];"
-            "[v][m]amix=inputs=2:duration=first:dropout_transition=3,"
-            "loudnorm=I=-14:TP=-1.5:LRA=9[a]"
-        )
-        amap = "[a]"
-    else:
-        fc.append(f"{voice_chain};[v]loudnorm=I=-14:TP=-1.5:LRA=9[a]")
-        amap = "[a]"
+    fade_out_music = max(0.5, total_dur - 3.0)
+    vol = float(music_volume)
+    fc.append(
+        f"{voice_chain};"
+        f"[{music_idx}:a]volume={vol:.3f},afade=t=in:st=0:d=2.0,afade=t=out:st={fade_out_music:.2f}:d=3.0[m];"
+        "[v][m]amix=inputs=2:duration=first:dropout_transition=3,"
+        "loudnorm=I=-14:TP=-1.5:LRA=9[a]"
+    )
+    amap = "[a]"
 
     cur = "0:v"
     if char_pattern:
