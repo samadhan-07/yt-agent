@@ -4,7 +4,7 @@ niche: "philosophical short stories, existential psychology, and literature-insp
 style_notes: "Calm, literary, and deeply empathetic. Begin with a quiet, relatable human moment or fictional character facing an inner dilemma, then gradually zoom out to connect their experience to timeless philosophy (Camus, Kierkegaard, Jung, Dostoevsky, Viktor Frankl, Alan Watts). Avoid hype, loud hooks, or preachy self-help clichés."
 language: en                      # en / hi / es (workflow input can override this)
 voice: en-US-BrianMultilingualNeural
-target_seconds: 180               # 3-minute narrative essay (~390 words, 10-13 scenes)
+target_seconds: 90                # 90-second narrative essay (~240 words, 7-9 scenes)
 videos_per_run: 1                 # run 2x/day via GitHub Actions cron
 
 # ---- Dynamic Visual Styles (used per scene type) ----
@@ -15,7 +15,7 @@ nature_style: "cinematic minimalist nature photography, misty pine forest, still
 music_volume: 0.11                # subtle, low background level (11%) beneath narration
 
 # ---- LLM (Google AI Studio) ----
-gemini_models: ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-2.5-flash"]
+gemini_models: ["gemini-2.5-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-3.8-flash"]
 
 # ---- AI images (Pollinations / FLUX) ----
 image_model: flux
@@ -24,7 +24,7 @@ image_delay_seconds: 16           # anonymous tier ~1 req / 15 s; lower if POLLI
 # ---- YouTube ----
 privacy: public                   # used when scheduling is off or forced; scheduled videos stay private until slot
 category_id: "27"                 # 27 = Education
-extra_tags: [philosophy, psychology, existentialism, meaning of life, storytelling, video essay]
+extra_tags: [philosophy, psychology, existentialism, meaning of life, storytelling]
 disclosure_line: "AI-assisted visuals and narration."
 
 # ---- Mascot disabled + meditative narrator voice ----
@@ -33,11 +33,11 @@ character:
   size: 180
   bottom_margin: 60
 cartoon_voices:
-  hi: hi-IN-MadhurNeural
+  hi: hi-IN-SwaraNeural
   en: en-US-BrianMultilingualNeural
   es: es-ES-AlvaroNeural
 voice_pitch: "+0Hz"
-voice_rate: "-6%"                 # slower, contemplative cadence
+voice_rate: "-1%"                 # natural conversational cadence without dragging syllables
 
 # ---- Narrative formats (rotates automatically every run) ----
 formats:
