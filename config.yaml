@@ -4,11 +4,15 @@ niche: "philosophical short stories, existential psychology, and literature-insp
 style_notes: "Calm, literary, and deeply empathetic. Begin with a quiet, relatable human moment or fictional character facing an inner dilemma, then gradually zoom out to connect their experience to timeless philosophy (Camus, Kierkegaard, Jung, Dostoevsky, Viktor Frankl, Alan Watts). Avoid hype, loud hooks, or preachy self-help clichés."
 language: en                      # en / hi / es (workflow input can override this)
 voice: en-US-BrianMultilingualNeural
-target_seconds: 180               # 3-minute narrative essay (set to 58 if keeping Shorts)
-videos_per_run: 1                 # 1 deep philosophical essay per run
+target_seconds: 180               # 3-minute narrative essay (~390 words, 10-13 scenes)
+videos_per_run: 1                 # run 2x/day via GitHub Actions cron
 
-# Locked visual aesthetic applied to every Pollinations FLUX scene
+# ---- Dynamic Visual Styles (used per scene type) ----
 visual_style: "flat 2D surrealist editorial vector illustration, muted slate blue and warm ochre color palette, minimalist geometric shapes, atmospheric lighting, subtle paper grain texture, horizontal 16:9, no text, no captions, no logos"
+nature_style: "cinematic minimalist nature photography, misty pine forest, still lake reflections, moody twilight atmosphere, 35mm film grain, horizontal 16:9, no text, no people, no logos"
+
+# ---- Background Audio ----
+music_volume: 0.11                # subtle, low background level (11%) beneath narration
 
 # ---- LLM (Google AI Studio) ----
 gemini_models: ["gemini-3.8-flash", "gemini-3.5-flash-lite", "gemini-3.5-flash", "gemini-2.5-flash"]
@@ -25,15 +29,15 @@ disclosure_line: "AI-assisted visuals and narration."
 
 # ---- Mascot disabled + meditative narrator voice ----
 character:
-  enabled: false                  # disables cartoon mascot overlay
-  size: 600
-  bottom_margin: 430
+  enabled: false
+  size: 180
+  bottom_margin: 60
 cartoon_voices:
   hi: hi-IN-MadhurNeural
   en: en-US-BrianMultilingualNeural
   es: es-ES-AlvaroNeural
-voice_pitch: "+0Hz"               # keep at 0Hz to avoid metallic artifacts in edge-tts
-voice_rate: "-6%"                 # slightly slower, contemplative cadence
+voice_pitch: "+0Hz"
+voice_rate: "-6%"                 # slower, contemplative cadence
 
 # ---- Narrative formats (rotates automatically every run) ----
 formats:
@@ -46,14 +50,15 @@ formats:
 # ---- YouTube audience ----
 made_for_kids: false
 
-# ---- Scheduled release ----
+# ---- Scheduled release (2 daily slots for 2x/day automation) ----
 schedule_publish: true
 publish_times_ist:
-  - "21:00"                       # late-evening slot fits reflective, long-form viewing
+  - "12:30"
+  - "21:00"
 
 # ---- End-screen banner disabled for clean cinematic fade-out ----
 cta:
   enabled: false
   mode: end
   seconds: 4
-  bottom_margin: 300
+  bottom_margin: 80
