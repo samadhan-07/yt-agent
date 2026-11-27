@@ -19,6 +19,11 @@ PHILOSOPHICAL_LOOK = (
     "no text, no captions, no logos"
 )
 
+NATURE_LOOK = (
+    "cinematic minimalist nature photography, misty pine forest, still lake reflections, "
+    "moody twilight atmosphere, 35mm film grain, horizontal 16:9, no text, no people, no logos"
+)
+
 
 def summary(msg):
     """Print, and also show on the GitHub run summary page so skips/uploads are visible."""
@@ -94,6 +99,7 @@ def make_one(cfg, st, dry_run):
 
     base_style = cfg.get("cartoon_style", "").strip()
     look = cfg.get("visual_style") or PHILOSOPHICAL_LOOK
+    nature_look = cfg.get("nature_style") or NATURE_LOOK
     data["visual_style"] = (base_style + ", " if base_style else "") + look
 
     char_cfg = cfg.get("character") or {}
@@ -126,7 +132,8 @@ def make_one(cfg, st, dry_run):
     seed = int.from_bytes(os.urandom(3), "big")
     images = []
     for i, s in enumerate(scenes):
-        print(f"Generating image {i + 1}/{len(scenes)}")
+        vtype = s.get("visual_type", "illustration")
+        print(f"Generating visual {i + 1}/{len(scenes)} [{vtype}]")
         try:
             img = imagegen.generate(
                 s["image_prompt"],
@@ -137,12 +144,16 @@ def make_one(cfg, st, dry_run):
                 delay=cfg.get("image_delay_seconds", 16),
                 width=render.W,
                 height=render.H,
+                visual_type=vtype,
+                quote_text=s.get("quote_text", ""),
+                quote_author=s.get("quote_author", ""),
+                nature_style=nature_look,
             )
         except Exception as e:
             if not images:
                 raise
             print(
-                f"WARN: image {i + 1} failed ({e!r}); reusing the previous image.",
+                f"WARN: visual {i + 1} failed ({e!r}); reusing the previous visual.",
                 file=sys.stderr,
                 flush=True,
             )
@@ -192,6 +203,8 @@ def make_one(cfg, st, dry_run):
         cta_bottom=int(cta_cfg.get("bottom_margin", 80)),
         durs=durs,
         subtitles=bool(cfg.get("subtitles", True)),
+        music_mood=data.get("music_mood"),
+        music_volume=float(cfg.get("music_volume", 0.11)),
     )
 
     is_short = dur <= 60 and render.W < render.H
@@ -259,7 +272,6 @@ def main():
     code = os.environ.get("VIDEO_LANGUAGE") or cfg.get("language", "en")
     name, default_voice = LANGS.get(code, (code, cfg.get("voice", "en-US-BrianMultilingualNeural")))
     cfg["language"] = name
-    # Prefer language-specific voice override if defined, else config voice
     lang_voices = cfg.get("cartoon_voices") or {}
     cfg["voice"] = lang_voices.get(code) or cfg.get("voice") or default_voice
 
